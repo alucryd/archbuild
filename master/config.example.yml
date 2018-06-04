@@ -1,0 +1,34 @@
+# master directories
+pkgbuilddir: /path/to/pkgbuilds
+srcdir: /path/to/srcs
+pkgdir: /path/to/pkgs
+# worker directories
+repodir: /path/to/public_html
+# repository suffix
+suffix: archbuild
+# sign packages
+gpg_sign: False
+# repositories
+repos:
+  - extra
+  - testing
+  - staging
+  - multilib
+  - multilib-testing
+  - multilib-staging
+# package groups
+groups:
+  -
+    name: community
+    repo: extra
+    pkgs:
+  -
+    name: packages
+    repo: extra
+    pkgs:
+      -
+        name: pkg1
+      -
+        name: pkg2
+        depends:
+          - pkg1

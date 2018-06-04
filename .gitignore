@@ -1,0 +1,9 @@
+*.hostname
+*.log
+*.pid
+*.sqlite
+.idea/
+__pycache__/
+venv/
+instance/
+config.yml
