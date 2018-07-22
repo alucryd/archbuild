@@ -8,6 +8,12 @@ repodir: /path/to/public_html
 suffix: archbuild
 # sign packages
 gpg_sign: False
+# email reports
+mail_reports: False
+sender: buildbot@localhost
+recipients:
+ - user1@localhost
+ - user2@localhost
 # repositories
 repos:
   - extra
