@@ -54,6 +54,9 @@ The email address buildbot will be using to send emails.
 #### recipients
 The email addresses of the report recipients.
 
+### admins
+Takes a hashmap of usernames and passwords. Using an email as username will automatically fetch your avatar from Gravatar. Leave empty to disable authentication.
+
 ### repos
 The target repositories, all official repositories are defined by default but you may want to restrict, or expand them. Custom repositories need an associated `custom-x86_64-build` binary the likes of what's in `devtools`.
 
