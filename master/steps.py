@@ -111,13 +111,13 @@ class RepoAdd(steps.ShellCommand):
         ]
 
 
-class MkSrcinfo(steps.ShellCommand):
-    name = 'mksrcinfo'
+class Srcinfo(steps.ShellCommand):
+    name = 'srcinfo'
     haltOnFailure = 1
     flunkOnFailure = 1
     description = ['generate .SRCINFO']
     descriptionDone = ['.SRCINFO generated']
-    command = ['mksrcinfo']
+    command = 'makepkg --printsrcinfo > .SRCINFO'
 
 
 class GpgSign(steps.MasterShellCommand):

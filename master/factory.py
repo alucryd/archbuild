@@ -1,6 +1,5 @@
 from buildbot.plugins import *
-
-from steps import ArchBuild, MkSrcinfo, RepoAdd, GpgSign, MovePackage, FindDependency, Cleanup
+from steps import ArchBuild, Cleanup, FindDependency, GpgSign, MovePackage, RepoAdd, Srcinfo
 from util import Srcinfo
 
 
@@ -71,7 +70,7 @@ class ArchBuildFactory(util.BuildFactory):
 
         # update properties
         self.addSteps([
-            MkSrcinfo(),
+            Srcinfo(),
             steps.FileUpload(
                 name='upload updated PKGBUILD',
                 workersrc='PKGBUILD',
