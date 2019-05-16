@@ -1,3 +1,5 @@
+# buildbot url
+url: http://localhost:8010
 # master directories
 pkgbuilddir: /path/to/pkgbuilds
 srcdir: /path/to/srcs
@@ -31,13 +33,14 @@ groups:
     name: community
     repo: extra
     pkgs:
+    - name: pkg1
+    - name: pkg2
+      repo: multilib
   -
     name: packages
     repo: extra
     pkgs:
-      -
-        name: pkg1
-      -
-        name: pkg2
+      - name: pkg3
+      - name: pkg4
         depends:
           - pkg1

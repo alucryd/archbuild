@@ -2,6 +2,8 @@ import os
 
 from buildbot.master import BuildMaster
 from twisted.application import service
+from twisted.python.log import FileLogObserver, ILogObserver
+from twisted.python.logfile import LogFile
 
 basedir = '.'
 rotateLength = 10000000
@@ -20,8 +22,6 @@ if basedir == '.':
 # note: this line is matched against to check that this is a buildmaster
 # directory; do not edit it.
 application = service.Application('buildmaster')
-from twisted.python.logfile import LogFile
-from twisted.python.log import ILogObserver, FileLogObserver
 
 logfile = LogFile.fromFullPath(os.path.join(basedir, "twistd.log"), rotateLength=rotateLength,
                                maxRotatedFiles=maxRotatedFiles)

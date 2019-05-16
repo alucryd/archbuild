@@ -1,6 +1,6 @@
 from buildbot.plugins import *
-from steps import ArchBuild, Cleanup, FindDependency, GpgSign, MovePackage, RepoAdd, Srcinfo
-from util import Srcinfo
+from steps import ArchBuild, Cleanup, FindDependency, GpgSign, InferPkgverFromGitTag, MovePackage, RepoAdd, SetPkgrel, SetPkgver, Srcinfo, Updpkgsums
+from util import Util
 
 
 class ArchBuildFactory(util.BuildFactory):
@@ -8,13 +8,11 @@ class ArchBuildFactory(util.BuildFactory):
     def __init__(self, pkgbuilddir: str, group: str, pkg_base: str, properties: dict, build_lock: util.WorkerLock):
         super().__init__()
 
+        gpg_sign = properties['gpg_sign']
         workdir = f'{pkgbuilddir}/{group}/{pkg_base}'
-        pkgdir = properties['pkgdir']
-        if not pkgdir:
-            pkgdir = workdir
+
         if group in ('community', 'packages'):
             workdir += '/trunk'
-        gpg_sign = properties['gpg_sign']
 
         # set initial properties
         self.addStep(
@@ -64,6 +62,14 @@ class ArchBuildFactory(util.BuildFactory):
                 )
             )
 
+        # update pkgver and pkgrel
+        self.addSteps([
+            InferPkgverFromGitTag(),
+            SetPkgver(),
+            SetPkgrel(),
+            Updpkgsums()
+        ])
+
         # build
         self.addStep(
             ArchBuild(locks=[build_lock.access('counting')])
@@ -84,7 +90,7 @@ class ArchBuildFactory(util.BuildFactory):
             ),
             steps.SetProperties(
                 name='refresh properties from srcinfo',
-                properties=Srcinfo.properties
+                properties=Util.srcinfo
             )
         ])
 
@@ -99,12 +105,8 @@ class ArchBuildFactory(util.BuildFactory):
                 ),
                 steps.FileUpload(
                     name=f'upload {pkg_name}',
-                    workersrc=util.Interpolate(
-                        f'{pkg_name}-%(prop:pkg_ver)s-%(prop:pkg_rel)s-%(prop:pkg_arch)s.pkg.tar.xz'
-                    ),
-                    masterdest=util.Interpolate(
-                        f'{pkgdir}/{pkg_name}-%(prop:pkg_ver)s-%(prop:pkg_rel)s-%(prop:pkg_arch)s.pkg.tar.xz'
-                    )
+                    workersrc=Util.pkg,
+                    masterdest=Util.pkg_masterdest
                 ),
                 MovePackage(name=f'move {pkg_name}')
             ])
@@ -113,17 +115,8 @@ class ArchBuildFactory(util.BuildFactory):
                     GpgSign(name=f'sign {pkg_name}'),
                     steps.FileDownload(
                         name=f'download {pkg_name} sig',
-                        mastersrc=util.Interpolate(
-                            f'{pkgdir}/{pkg_name}-%(prop:pkg_ver)s-%(prop:pkg_rel)s-%(prop:pkg_arch)s.pkg.tar.xz.sig'
-                        ),
-                        workerdest=util.Interpolate(
-                            '/'.join([
-                                '%(prop:repodir)s',
-                                '%(prop:repo_name)s-%(prop:suffix)s',
-                                'x86_64',
-                                f'{pkg_name}-%(prop:pkg_ver)s-%(prop:pkg_rel)s-%(prop:pkg_arch)s.pkg.tar.xz.sig'
-                            ])
-                        )
+                        mastersrc=Util.sig_mastersrc,
+                        workerdest=Util.sig_workerdest
                     )
                 ])
 

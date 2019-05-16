@@ -2,6 +2,8 @@ import os
 
 from buildbot_worker.bot import Worker
 from twisted.application import service
+from twisted.python.log import FileLogObserver, ILogObserver
+from twisted.python.logfile import LogFile
 
 basedir = '.'
 rotateLength = 10000000
@@ -17,15 +19,12 @@ if basedir == '.':
 # directory; do not edit it.
 application = service.Application('buildbot-worker')
 
-from twisted.python.logfile import LogFile
-from twisted.python.log import ILogObserver, FileLogObserver
-
 logfile = LogFile.fromFullPath(
     os.path.join(basedir, "twistd.log"), rotateLength=rotateLength,
     maxRotatedFiles=maxRotatedFiles)
 application.setComponent(ILogObserver, FileLogObserver(logfile).emit)
 
-buildmaster_host = 'buildbot.alucryd.xyz'
+buildmaster_host = 'localhost'
 port = 8011
 workername = 'worker'
 passwd = 'worker'

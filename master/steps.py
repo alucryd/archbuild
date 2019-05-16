@@ -1,4 +1,5 @@
 import os
+import re
 
 from buildbot.plugins import *
 from buildbot.process.properties import Interpolate
@@ -75,11 +76,13 @@ class MovePackage(steps.ShellCommand):
         pkg_name = props.getProperty('pkg_name')
         pkg_ver = props.getProperty('pkg_ver')
         pkg_rel = props.getProperty('pkg_rel')
+        epoch = props.getProperty('epoch')
         pkg_arch = props.getProperty('pkg_arch')
+        pkg = f'{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz'
         return [
             'mv',
-            f'{pkg_name}-{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz',
-            f'{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz'
+            pkg,
+            f'{repodir}/{repo_name}-{suffix}/x86_64/{pkg}'
         ]
 
 
@@ -101,14 +104,87 @@ class RepoAdd(steps.ShellCommand):
         pkg_name = props.getProperty('pkg_name')
         pkg_ver = props.getProperty('pkg_ver')
         pkg_rel = props.getProperty('pkg_rel')
+        epoch = props.getProperty('epoch')
         pkg_arch = props.getProperty('pkg_arch')
+        pkg = f'{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz'
         return [
             'repo-add',
             '-R',
             '-d',
             f'{repodir}/{repo_name}-{suffix}/x86_64/{repo_name}-{suffix}.db.tar.gz',
-            f'{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz'
+            f'{repodir}/{repo_name}-{suffix}/x86_64/{pkg}'
         ]
+
+
+class InferPkgverFromGitTag(steps.SetProperties):
+    name = 'infer pkgver from git tag'
+    description = ['inferring pkgver from git tag']
+    descriptionDone = ['pkgver inferred from git tag']
+
+    def __init__(self, **kwargs):
+        super().__init__(properties=InferPkgverFromGitTag.properties, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def properties(props):
+        git_tag = props.getProperty('git_tag')
+        tag = props.getProperty('tag')
+        if git_tag and tag:
+            tag_pattern = re.compile(git_tag)
+            match = tag_pattern.match(tag)
+            return {
+                'pkg_ver': match.group(1),
+                'pkg_rel': 1
+            }
+        return {}
+
+
+class SetPkgver(steps.ShellCommand):
+    name = 'set pkgver'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['set pkgver']
+    descriptionDone = ['pkgver set']
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        pkgver = props.getProperty('pkg_ver')
+        return [
+            'sed',
+            f'/pkgver=/c pkgver={pkgver}',
+            '-i',
+            'PKGBUILD'
+        ]
+
+    @staticmethod
+    def doStepIf(step):
+        pkgver = step.getProperty('pkg_ver')
+        return bool(pkgver)
+
+
+class SetPkgrel(steps.ShellCommand):
+    name = 'set pkgrel'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['set pkgrel']
+    descriptionDone = ['pkgrel set']
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        pkgrel = props.getProperty('pkg_rel')
+        return [
+            'sed',
+            f'/pkgrel=/c pkgrel={pkgrel}',
+            '-i',
+            'PKGBUILD'
+        ]
+
+    @staticmethod
+    def doStepIf(step):
+        pkgrel = step.getProperty('pkg_rel')
+        return bool(pkgrel)
 
 
 class Srcinfo(steps.ShellCommand):
@@ -118,6 +194,20 @@ class Srcinfo(steps.ShellCommand):
     description = ['generate .SRCINFO']
     descriptionDone = ['.SRCINFO generated']
     command = 'makepkg --printsrcinfo > .SRCINFO'
+
+
+class Updpkgsums(steps.ShellCommand):
+    name = 'updpkgsums'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['update source checksums']
+    descriptionDone = ['source checksums generated']
+    command = ['updpkgsums']
+
+    @staticmethod
+    def doStepIf(step):
+        pkgver = step.getProperty('pkg_ver')
+        return bool(pkgver)
 
 
 class GpgSign(steps.MasterShellCommand):
@@ -136,12 +226,14 @@ class GpgSign(steps.MasterShellCommand):
         pkg_name = props.getProperty('pkg_name')
         pkg_ver = props.getProperty('pkg_ver')
         pkg_rel = props.getProperty('pkg_rel')
+        epoch = props.getProperty('epoch')
         pkg_arch = props.getProperty('pkg_arch')
+        pkg = f'{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz'
         return [
             'gpg',
             '--detach-sign',
             '--yes',
-            f'{pkgdir}/{pkg_name}-{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz'
+            f'{pkgdir}/{pkg}'
         ]
 
 
