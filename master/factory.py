@@ -32,7 +32,8 @@ class ArchBuildFactory(util.BuildFactory):
                     steps.SetProperty(
                         name=f'set depends_name to {depends_name}',
                         property='depends_name',
-                        value=depends_name
+                        value=depends_name,
+                        hideStepIf=True
                     ),
                     FindDependency(name=f'find {depends_name}')
                 ])
@@ -93,7 +94,8 @@ class ArchBuildFactory(util.BuildFactory):
                 steps.SetProperty(
                     name=f'set pkg_name to {pkg_name}',
                     property='pkg_name',
-                    value=pkg_name
+                    value=pkg_name,
+                    hideStepIf=True
                 ),
                 steps.FileUpload(
                     name=f'upload {pkg_name}',
@@ -104,13 +106,13 @@ class ArchBuildFactory(util.BuildFactory):
                         f'{pkgdir}/{pkg_name}-%(prop:pkg_ver)s-%(prop:pkg_rel)s-%(prop:pkg_arch)s.pkg.tar.xz'
                     )
                 ),
-                MovePackage(name=f'move {pkg_name} to repo')
+                MovePackage(name=f'move {pkg_name}')
             ])
             if gpg_sign:
                 self.addSteps([
                     GpgSign(name=f'sign {pkg_name}'),
                     steps.FileDownload(
-                        name=f'download {pkg_name} signature',
+                        name=f'download {pkg_name} sig',
                         mastersrc=util.Interpolate(
                             f'{pkgdir}/{pkg_name}-%(prop:pkg_ver)s-%(prop:pkg_rel)s-%(prop:pkg_arch)s.pkg.tar.xz.sig'
                         ),
@@ -126,7 +128,7 @@ class ArchBuildFactory(util.BuildFactory):
                 ])
 
             # update repository
-            self.addStep(RepoAdd(name=f'add {pkg_name} to repo'))
+            self.addStep(RepoAdd(name=f'add {pkg_name}'))
 
         # cleanup
         self.addStep(Cleanup())
