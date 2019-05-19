@@ -35,7 +35,7 @@ class Util:
         path = Path(basedir) / pkgdir / Util.FILENAME
 
         if not path.is_file():
-            subprocess.run(['mksrcinfo'], cwd=path.parent)
+            subprocess.run('makepkg --printsrcinfo > .SRCINFO', cwd=path.parent, shell=True)
 
         with open(path, 'r') as f:
             line = f.readline()
