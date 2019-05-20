@@ -1,12 +1,14 @@
+import os
 import re
 import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 
 from buildbot.plugins import *
+from psutil import process_iter
 
 
-class Util:
+class ArchBuildUtil:
     FILENAME = '.SRCINFO'
     URL_PATTERN = re.compile(r'[^:]*:{0,2}(ht|f)tps?://.+')
     GIT_PATTERN = re.compile(r'([^:]*):{0,2}(git)\+([^#]+)#?(.*)')
@@ -32,7 +34,7 @@ class Util:
         pkgdir = f'{group}/{pkg_base}'
         if group in ('community', 'packages'):
             pkgdir += '/trunk'
-        path = Path(basedir) / pkgdir / Util.FILENAME
+        path = Path(basedir) / pkgdir / ArchBuildUtil.FILENAME
 
         if not path.is_file():
             subprocess.run('makepkg --printsrcinfo > .SRCINFO', cwd=path.parent, shell=True)
@@ -42,7 +44,7 @@ class Util:
             while line:
                 if line.strip().startswith('source'):
                     source = '='.join(line.split('=')[1:]).strip()
-                    matches = (Util.GIT_PATTERN.match(source), Util.HG_PATTERN.match(source))
+                    matches = (ArchBuildUtil.GIT_PATTERN.match(source), ArchBuildUtil.HG_PATTERN.match(source))
                     match = next((m for m in matches if m is not None), None)
                     if match is not None:
                         # pick the first vcs as the main one
@@ -58,7 +60,7 @@ class Util:
                                     git_tag = fragment[1].replace(pkg_ver, '(.+)')
                                 elif vcs_type == 'hg' and fragment[0] == 'tag':
                                     git_tag = fragment[1].replace(pkg_ver, '(.+)')
-                    elif Util.URL_PATTERN.match(source) is None:
+                    elif ArchBuildUtil.URL_PATTERN.match(source) is None:
                         src_names.append(source)
                 elif line.strip().startswith('arch'):
                     pkg_arch = line.split('=')[1].strip()
@@ -95,7 +97,7 @@ class Util:
         pkgbuilddir = props.getProperty('pkgbuilddir')
         group = props.getProperty('group')
         pkg_base = props.getProperty('pkg_base')
-        properties = Util.parse_srcinfo(pkgbuilddir, group, pkg_base)
+        properties = ArchBuildUtil.parse_srcinfo(pkgbuilddir, group, pkg_base)
         return properties
 
     @staticmethod
@@ -152,3 +154,13 @@ class Util:
         epoch = props.getProperty('epoch')
         pkg_arch = props.getProperty('pkg_arch')
         return f'{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz.sig'
+
+    @staticmethod
+    @util.renderer
+    def ssh_agent(props):
+        uid = os.getuid()
+        ssh_agent_proc = [p for p in process_iter(attrs=['name', 'uids']) if p.info['name'] == 'ssh-agent' and uid in p.info['uids']][0]
+        return {
+            'SSH_AUTH_SOCK': f'/tmp/ssh-agent.sock.{uid}',
+            'SSH_AGENT_PID': str(ssh_agent_proc.pid)
+        }

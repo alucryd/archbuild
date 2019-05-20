@@ -5,6 +5,7 @@ instance/
 *.log
 *.pid
 __pycache__/
+.pytest_cache
 *.sqlite
 .venv/
 .vscode

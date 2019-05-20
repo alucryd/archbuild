@@ -1,14 +1,17 @@
 from buildbot.plugins import *
-from steps import ArchBuild, Cleanup, FindDependency, GpgSign, InferPkgverFromGitTag, MovePackage, RepoAdd, SetPkgrel, SetPkgver, Srcinfo, Updpkgsums
-from util import Util
+
+from steps import (ArchBuild, Cleanup, FindDependency, GpgSign, InferPkgverFromGitTag, MountPkgbuildCom, MovePackage, RepoAdd, RepoSync, SetPkgrel, SetPkgver,
+                   Srcinfo, UnmountPkgbuildCom, Updpkgsums)
+from util import ArchBuildUtil
 
 
 class ArchBuildFactory(util.BuildFactory):
 
-    def __init__(self, pkgbuilddir: str, group: str, pkg_base: str, properties: dict, build_lock: util.WorkerLock):
+    def __init__(self, pkgbuilddir: str, group: str, pkg_base: str, properties: dict):
         super().__init__()
 
         gpg_sign = properties['gpg_sign']
+        sshdir = properties['sshdir']
         workdir = f'{pkgbuilddir}/{group}/{pkg_base}'
 
         if group in ('community', 'packages'):
@@ -71,9 +74,7 @@ class ArchBuildFactory(util.BuildFactory):
         ])
 
         # build
-        self.addStep(
-            ArchBuild(locks=[build_lock.access('counting')])
-        )
+        self.addStep(ArchBuild())
 
         # update properties
         self.addSteps([
@@ -90,7 +91,7 @@ class ArchBuildFactory(util.BuildFactory):
             ),
             steps.SetProperties(
                 name='refresh properties from srcinfo',
-                properties=Util.srcinfo
+                properties=ArchBuildUtil.srcinfo
             )
         ])
 
@@ -105,8 +106,8 @@ class ArchBuildFactory(util.BuildFactory):
                 ),
                 steps.FileUpload(
                     name=f'upload {pkg_name}',
-                    workersrc=Util.pkg,
-                    masterdest=Util.pkg_masterdest
+                    workersrc=ArchBuildUtil.pkg,
+                    masterdest=ArchBuildUtil.pkg_masterdest
                 ),
                 MovePackage(name=f'move {pkg_name}')
             ])
@@ -115,13 +116,19 @@ class ArchBuildFactory(util.BuildFactory):
                     GpgSign(name=f'sign {pkg_name}'),
                     steps.FileDownload(
                         name=f'download {pkg_name} sig',
-                        mastersrc=Util.sig_mastersrc,
-                        workerdest=Util.sig_workerdest
+                        mastersrc=ArchBuildUtil.sig_mastersrc,
+                        workerdest=ArchBuildUtil.sig_workerdest
                     )
                 ])
 
             # update repository
             self.addStep(RepoAdd(name=f'add {pkg_name}'))
+
+            # synchronize repository
+            if sshdir:
+                self.addStep(MountPkgbuildCom(env=ArchBuildUtil.ssh_agent))
+                self.addStep(RepoSync(env=ArchBuildUtil.ssh_agent))
+                self.addStep(UnmountPkgbuildCom())
 
         # cleanup
         self.addStep(Cleanup())

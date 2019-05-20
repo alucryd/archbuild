@@ -92,9 +92,6 @@ class RepoAdd(steps.ShellCommand):
     description = ['add package to repo']
     descriptionDone = ['package added to repo']
 
-    def __init__(self, **kwargs):
-        super().__init__(command=RepoAdd.command, **kwargs)
-
     @staticmethod
     @util.renderer
     def command(props):
@@ -120,9 +117,6 @@ class InferPkgverFromGitTag(steps.SetProperties):
     name = 'infer pkgver from git tag'
     description = ['inferring pkgver from git tag']
     descriptionDone = ['pkgver inferred from git tag']
-
-    def __init__(self, **kwargs):
-        super().__init__(properties=InferPkgverFromGitTag.properties, **kwargs)
 
     @staticmethod
     @util.renderer
@@ -235,6 +229,57 @@ class GpgSign(steps.MasterShellCommand):
             '--yes',
             f'{pkgdir}/{pkg}'
         ]
+
+
+class MountPkgbuildCom(steps.MasterShellCommand):
+    name = 'mount pkgbuild.com'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['mount pkgbuild.com']
+    descriptionDone = ['pkgbuild.com mounted']
+    command = [
+        'sshfs',
+        '-C',
+        'pkgbuild.com:',
+        Interpolate('%(prop:sshdir)s')
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=MountPkgbuildCom.command, **kwargs)
+
+
+class UnmountPkgbuildCom(steps.MasterShellCommand):
+    name = 'unmount pkgbuild.com'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['unmount pkgbuild.com']
+    descriptionDone = ['pkgbuild.com unmounted']
+    command = [
+        'fusermount3',
+        '-u',
+        Interpolate('%(prop:sshdir)s')
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=UnmountPkgbuildCom.command, **kwargs)
+
+
+class RepoSync(steps.MasterShellCommand):
+    name = 'synchronize repository'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['synchronize repository']
+    descriptionDone = ['repository synchronized']
+    command = [
+        'rsync',
+        '-avz',
+        '--delete',
+        Interpolate('%(prop:workerhost)s:~/public_html'),
+        Interpolate('%(prop:sshdir)s')
+    ]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=RepoSync.command, **kwargs)
 
 
 class Cleanup(steps.ShellCommand):

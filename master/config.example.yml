@@ -4,8 +4,9 @@ url: http://localhost:8010
 pkgbuilddir: /path/to/pkgbuilds
 srcdir: /path/to/srcs
 pkgdir: /path/to/pkgs
+sshdir: /path/to/ssh/mountpoint # optional
 # worker directories
-repodir: /path/to/public_html
+repodir: /path/to/public/html
 # repository suffix
 suffix: archbuild
 # sign packages

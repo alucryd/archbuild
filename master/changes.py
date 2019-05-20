@@ -1,5 +1,5 @@
-import smtplib
 from email.message import EmailMessage
+from smtplib import SMTP
 
 from buildbot.changes.gitpoller import GitPoller
 from buildbot.util import bytes2unicode
@@ -117,5 +117,5 @@ class GitPollerWithTags(GitPoller):
         msg = EmailMessage()
         msg.set_content(text)
         msg['Subject'] = subject
-        with smtplib.SMTP('localhost') as s:
+        with SMTP('localhost') as s:
             s.send_message(msg, from_addr=self.sender, to_addrs=self.recipients)

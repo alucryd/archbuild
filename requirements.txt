@@ -2,4 +2,5 @@ buildbot
 buildbot-worker
 buildbot-www
 service_identity
+psutil
 PyYAML
