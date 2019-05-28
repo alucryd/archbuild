@@ -12,7 +12,11 @@ class FindDependency(steps.SetPropertyFromCommand):
     descriptionDone = ['dependency found']
 
     def __init__(self, **kwargs):
-        super().__init__(command=FindDependency.command, extract_fn=FindDependency.restrict_glob, **kwargs)
+        super().__init__(
+            command=self.command,
+            extract_fn=self.restrict_glob,
+            **kwargs
+        )
 
     @staticmethod
     @util.renderer
@@ -65,7 +69,7 @@ class MovePackage(steps.ShellCommand):
     descriptionDone = ['package moved to repo']
 
     def __init__(self, **kwargs):
-        super().__init__(command=MovePackage.command, **kwargs)
+        super().__init__(command=self.command, **kwargs)
 
     @staticmethod
     @util.renderer
@@ -118,19 +122,21 @@ class InferPkgverFromGitTag(steps.SetProperties):
     description = ['inferring pkgver from git tag']
     descriptionDone = ['pkgver inferred from git tag']
 
+    def __init__(self, **kwargs):
+        super().__init__(properties=self.properties, **kwargs)
+
     @staticmethod
     @util.renderer
     def properties(props):
+        properties = {}
         git_tag = props.getProperty('git_tag')
         tag = props.getProperty('tag')
         if git_tag and tag:
             tag_pattern = re.compile(git_tag)
             match = tag_pattern.match(tag)
-            return {
-                'pkg_ver': match.group(1),
-                'pkg_rel': 1
-            }
-        return {}
+            properties['pkg_ver'] = match.group(1)
+            properties['pkg_rel'] = 1
+        return properties
 
 
 class SetPkgver(steps.ShellCommand):
@@ -211,7 +217,7 @@ class GpgSign(steps.MasterShellCommand):
     descriptionDone = ['package signed']
 
     def __init__(self, **kwargs):
-        super().__init__(command=GpgSign.command, **kwargs)
+        super().__init__(command=self.command, **kwargs)
 
     @staticmethod
     @util.renderer
@@ -245,7 +251,7 @@ class MountPkgbuildCom(steps.MasterShellCommand):
     ]
 
     def __init__(self, **kwargs):
-        super().__init__(command=MountPkgbuildCom.command, **kwargs)
+        super().__init__(command=self.command, **kwargs)
 
 
 class UnmountPkgbuildCom(steps.MasterShellCommand):
@@ -261,7 +267,7 @@ class UnmountPkgbuildCom(steps.MasterShellCommand):
     ]
 
     def __init__(self, **kwargs):
-        super().__init__(command=UnmountPkgbuildCom.command, **kwargs)
+        super().__init__(command=self.command, **kwargs)
 
 
 class RepoSync(steps.MasterShellCommand):
@@ -279,7 +285,7 @@ class RepoSync(steps.MasterShellCommand):
     ]
 
     def __init__(self, **kwargs):
-        super().__init__(command=RepoSync.command, **kwargs)
+        super().__init__(command=self.command, **kwargs)
 
 
 class Cleanup(steps.ShellCommand):

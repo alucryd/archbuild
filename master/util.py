@@ -30,6 +30,7 @@ class ArchBuildUtil:
         git_branch = ''
         git_tag = ''
         hg_branch = ''
+        hg_tag = ''
 
         pkgdir = f'{group}/{pkg_base}'
         if group in ('community', 'packages'):
@@ -59,7 +60,7 @@ class ArchBuildUtil:
                                 if vcs_type == 'git' and fragment[0] == 'tag':
                                     git_tag = fragment[1].replace(pkg_ver, '(.+)')
                                 elif vcs_type == 'hg' and fragment[0] == 'tag':
-                                    git_tag = fragment[1].replace(pkg_ver, '(.+)')
+                                    hg_tag = fragment[1].replace(pkg_ver, '(.+)')
                     elif ArchBuildUtil.URL_PATTERN.match(source) is None:
                         src_names.append(source)
                 elif line.strip().startswith('arch'):
@@ -88,7 +89,8 @@ class ArchBuildUtil:
             'epoch': epoch,
             'git_branch': git_branch,
             'git_tag': git_tag,
-            'hg_branch': hg_branch
+            'hg_branch': hg_branch,
+            'hg_tag': hg_tag
         }
 
     @staticmethod
