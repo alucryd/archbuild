@@ -124,11 +124,11 @@ class ArchBuildFactory(util.BuildFactory):
             # update repository
             self.addStep(RepoAdd(name=f'add {pkg_name}'))
 
-            # synchronize repository
-            if sshdir:
-                self.addStep(MountPkgbuildCom(env=ArchBuildUtil.ssh_agent))
-                self.addStep(RepoSync(env=ArchBuildUtil.ssh_agent))
-                self.addStep(UnmountPkgbuildCom())
+        # synchronize repository
+        if sshdir:
+            self.addStep(MountPkgbuildCom(env=ArchBuildUtil.ssh_agent))
+            self.addStep(RepoSync(env=ArchBuildUtil.ssh_agent))
+            self.addStep(UnmountPkgbuildCom())
 
         # cleanup
         self.addStep(Cleanup())
