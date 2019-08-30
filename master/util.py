@@ -11,8 +11,8 @@ from psutil import process_iter
 class ArchBuildUtil:
     FILENAME = '.SRCINFO'
     URL_PATTERN = re.compile(r'[^:]*:{0,2}(ht|f)tps?://.+')
-    GIT_PATTERN = re.compile(r'([^:]*):{0,2}(git)\+([^#]+)#?(.*)')
-    HG_PATTERN = re.compile(r'([^:]*):{0,2}(hg)\+([^#]+)#?(.*)')
+    VCS_PATTERN_1 = re.compile(r'([^:]*):{0,2}((git|hg)://[^#]+)#?(.*)')
+    VCS_PATTERN_2 = re.compile(r'([^:]*):{0,2}(git|hg)\+([^#]+)#?(.*)')
 
     @staticmethod
     def parse_srcinfo(basedir: str, group: str, pkg_base: str) -> dict:
@@ -45,18 +45,32 @@ class ArchBuildUtil:
             while line:
                 if line.strip().startswith('source'):
                     source = '='.join(line.split('=')[1:]).strip()
-                    matches = (ArchBuildUtil.GIT_PATTERN.match(source), ArchBuildUtil.HG_PATTERN.match(source))
-                    match = next((m for m in matches if m is not None), None)
-                    if match is not None:
+                    match_1 = ArchBuildUtil.VCS_PATTERN_1.match(source)
+                    match_2 = ArchBuildUtil.VCS_PATTERN_2.match(source)
+                    if match_1 is not None:
                         # pick the first vcs as the main one
                         if not vcs_name:
-                            vcs_type = match.group(2)
-                            vcs_url = match.group(3)
-                            vcs_name = match.group(1)
+                            vcs_type = match_1.group(3)
+                            vcs_url = match_1.group(2)
+                            vcs_name = match_1.group(1)
                             if not vcs_name:
                                 vcs_name = Path(urlparse(vcs_url).path).stem
-                            if match.group(4):
-                                fragment = match.group(4).split('=')
+                            if match_1.group(4):
+                                fragment = match_1.group(4).split('=')
+                                if vcs_type == 'git' and fragment[0] == 'tag':
+                                    git_tag = fragment[1].replace(pkg_ver, '(.+)')
+                                elif vcs_type == 'hg' and fragment[0] == 'tag':
+                                    hg_tag = fragment[1].replace(pkg_ver, '(.+)')
+                    elif match_2 is not None:
+                        # pick the first vcs as the main one
+                        if not vcs_name:
+                            vcs_type = match_2.group(2)
+                            vcs_url = match_2.group(3)
+                            vcs_name = match_2.group(1)
+                            if not vcs_name:
+                                vcs_name = Path(urlparse(vcs_url).path).stem
+                            if match_2.group(4):
+                                fragment = match_2.group(4).split('=')
                                 if vcs_type == 'git' and fragment[0] == 'tag':
                                     git_tag = fragment[1].replace(pkg_ver, '(.+)')
                                 elif vcs_type == 'hg' and fragment[0] == 'tag':
