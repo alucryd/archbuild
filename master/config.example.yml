@@ -13,8 +13,11 @@ suffix: archbuild
 gpg_sign: False
 # email reports
 mail_reports: False
-sender: buildbot@localhost
-recipients:
+mail_host: localhost
+mail_user: buildbot
+mail_password: password
+mail_sender: buildbot@localhost
+mail_recipients:
  - user1@localhost
  - user2@localhost
 # authentication

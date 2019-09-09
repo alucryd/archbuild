@@ -1,7 +1,7 @@
 from buildbot.plugins import *
 
-from steps import (ArchBuild, Cleanup, FindDependency, GpgSign, InferPkgverFromGitTag, MountPkgbuildCom, MovePackage, RepoAdd, RepoSync, SetPkgrel, SetPkgver,
-                   Srcinfo, UnmountPkgbuildCom, Updpkgsums)
+from steps import (ArchBuild, Cleanup, FindDependency, GpgSign, MountPkgbuildCom, MovePackage, RepoAdd, RepoSync, SetPkgrel, SetPkgver, SetTagHash, Srcinfo,
+                   UnmountPkgbuildCom, Updpkgsums)
 from util import ArchBuildUtil
 
 
@@ -65,13 +65,16 @@ class ArchBuildFactory(util.BuildFactory):
                 )
             )
 
-        # update pkgver and pkgrel
+        # update pkgver, pkgrel
         self.addSteps([
-            InferPkgverFromGitTag(),
             SetPkgver(),
             SetPkgrel(),
             Updpkgsums()
         ])
+
+        # update git tag
+        if properties['git_tag']:
+            self.addStep(SetTagHash())
 
         # build
         self.addStep(ArchBuild())

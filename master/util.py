@@ -28,9 +28,9 @@ class ArchBuildUtil:
         pkg_arch = ''
 
         git_branch = ''
-        git_tag = ''
+        git_tag = False
         hg_branch = ''
-        hg_tag = ''
+        hg_tag = False
 
         pkgdir = f'{group}/{pkg_base}'
         if group in ('community', 'packages'):
@@ -58,9 +58,9 @@ class ArchBuildUtil:
                             if match_1.group(4):
                                 fragment = match_1.group(4).split('=')
                                 if vcs_type == 'git' and fragment[0] == 'tag':
-                                    git_tag = fragment[1].replace(pkg_ver, '(.+)')
+                                    git_tag = True
                                 elif vcs_type == 'hg' and fragment[0] == 'tag':
-                                    hg_tag = fragment[1].replace(pkg_ver, '(.+)')
+                                    hg_tag = True
                     elif match_2 is not None:
                         # pick the first vcs as the main one
                         if not vcs_name:
@@ -72,9 +72,9 @@ class ArchBuildUtil:
                             if match_2.group(4):
                                 fragment = match_2.group(4).split('=')
                                 if vcs_type == 'git' and fragment[0] == 'tag':
-                                    git_tag = fragment[1].replace(pkg_ver, '(.+)')
+                                    git_tag = True
                                 elif vcs_type == 'hg' and fragment[0] == 'tag':
-                                    hg_tag = fragment[1].replace(pkg_ver, '(.+)')
+                                    hg_tag = True
                     elif ArchBuildUtil.URL_PATTERN.match(source) is None:
                         src_names.append(source)
                 elif line.strip().startswith('arch'):

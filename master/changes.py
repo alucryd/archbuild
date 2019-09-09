@@ -10,8 +10,11 @@ from twisted.python import log
 
 class GitPollerWithTags(GitPoller):
 
-    def __init__(self, sender: str, recipients: list, **kwargs):
+    def __init__(self, host: str, user: str, password: str, sender: str, recipients: list, **kwargs):
         super().__init__(**kwargs)
+        self.host = host
+        self.user = user
+        self.password = password
         self.sender = sender
         self.recipients = recipients
 
@@ -27,26 +30,11 @@ class GitPollerWithTags(GitPoller):
         # initial run, don't parse all history
         if not self.lastRev:
             return
-        rebuild = False
-        if newRev in itervalues(self.lastRev):
-            if self.buildPushesWithNoCommits:
-                existingRev = self.lastRev.get(branch)
-                if existingRev is None:
-                    # This branch was completely unknown, rebuild
-                    log.msg('gitpoller: rebuilding {} for new branch "{}"'.format(
-                        newRev, branch))
-                    rebuild = True
-                elif existingRev != newRev:
-                    # This branch is known, but it now points to a different
-                    # commit than last time we saw it, rebuild.
-                    log.msg('gitpoller: rebuilding {} for updated branch "{}"'.format(
-                        newRev, branch))
-                    rebuild = True
 
         # get the change list
         revListArgs = (['--format=%H', '{}'.format(newRev)] +
                        ['^' + rev
-                        for rev in sorted(itervalues(self.lastRev))] +
+                        for rev in sorted(self.lastRev.values())] +
                        ['--'])
         self.changeCount = 0
         results = yield self._dovccmd('log', revListArgs, path=self.workdir)
@@ -55,8 +43,19 @@ class GitPollerWithTags(GitPoller):
         revList = results.split()
         revList.reverse()
 
-        if rebuild and not revList:
-            revList = [newRev]
+        if self.buildPushesWithNoCommits and not revList:
+            existingRev = self.lastRev.get(branch)
+            if existingRev != newRev:
+                revList = [newRev]
+                if existingRev is None:
+                    # This branch was completely unknown, rebuild
+                    log.msg('gitpoller: rebuilding {} for new branch "{}"'.format(
+                        newRev, branch))
+                else:
+                    # This branch is known, but it now points to a different
+                    # commit than last time we saw it, rebuild.
+                    log.msg('gitpoller: rebuilding {} for updated branch "{}"'.format(
+                        newRev, branch))
 
         self.changeCount = len(revList)
         self.lastRev[branch] = newRev
@@ -66,9 +65,13 @@ class GitPollerWithTags(GitPoller):
                 self.changeCount, revList, self.repourl, branch))
 
         for rev in revList:
+            print("###############################")
+            print(rev)
+            print("###############################")
             dl = defer.DeferredList([
                 self._get_commit_timestamp(rev),
                 self._get_commit_author(rev),
+                self._get_commit_committer(rev),
                 self._get_commit_files(rev),
                 self._get_commit_comments(rev),
                 self._get_commit_tag(rev)
@@ -85,21 +88,31 @@ class GitPollerWithTags(GitPoller):
                 # just fail on the first error; they're probably all related!
                 failures[0].raiseException()
 
-            timestamp, author, files, comments, tag = [r[1] for r in results]
+            timestamp, author, committer, files, comments, tag = [r[1] for r in results]
+            tag_hash = yield self._get_tag_hash(tag)
+
+            print("##########################################")
+            print(tag)
+            print(tag_hash)
+            print("##########################################")
 
             if rev == revList[-1]:
                 self._sendmail(f'[{self.category}] New release', f'{self.category} has got a new release: {tag}')
 
             yield self.master.data.updates.addChange(
                 author=author,
+                committer=committer,
                 revision=bytes2unicode(rev, encoding=self.encoding),
                 files=files, comments=comments, when_timestamp=timestamp,
                 branch=bytes2unicode(self._removeHeads(branch)),
                 project=self.project,
                 repository=bytes2unicode(self.repourl, encoding=self.encoding),
                 category=self.category,
-                src=u'git',
-                properties={'tag': bytes2unicode(tag, encoding=self.encoding)})
+                src='git',
+                properties={
+                    'tag': bytes2unicode(tag, encoding=self.encoding),
+                    'tag_hash': bytes2unicode(tag_hash, encoding=self.encoding)
+                })
 
     def _get_commit_tag(self, rev):
         args = ['--tags', rev, '--']
@@ -113,9 +126,23 @@ class GitPollerWithTags(GitPoller):
 
         return d
 
+    def _get_tag_hash(self, tag):
+        args = [tag]
+        d = self._dovccmd('rev-parse', args, path=self.workdir)
+
+        @d.addCallback
+        def process(git_output):
+            if not git_output:
+                raise EnvironmentError('could not get hash for tag')
+            return git_output
+
+        return d
+
     def _sendmail(self, subject: str, text: str) -> None:
         msg = EmailMessage()
         msg.set_content(text)
         msg['Subject'] = subject
-        with SMTP('localhost') as s:
+        with SMTP(self.host) as s:
+            s.starttls()
+            s.login(self.user, self.password)
             s.send_message(msg, from_addr=self.sender, to_addrs=self.recipients)

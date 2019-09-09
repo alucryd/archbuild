@@ -117,28 +117,6 @@ class RepoAdd(steps.ShellCommand):
         ]
 
 
-class InferPkgverFromGitTag(steps.SetProperties):
-    name = 'infer pkgver from git tag'
-    description = ['inferring pkgver from git tag']
-    descriptionDone = ['pkgver inferred from git tag']
-
-    def __init__(self, **kwargs):
-        super().__init__(properties=self.properties, **kwargs)
-
-    @staticmethod
-    @util.renderer
-    def properties(props):
-        properties = {}
-        git_tag = props.getProperty('git_tag')
-        tag = props.getProperty('tag')
-        if git_tag and tag:
-            tag_pattern = re.compile(git_tag)
-            match = tag_pattern.match(tag)
-            properties['pkg_ver'] = match.group(1)
-            properties['pkg_rel'] = 1
-        return properties
-
-
 class SetPkgver(steps.ShellCommand):
     name = 'set pkgver'
     haltOnFailure = 1
@@ -185,6 +163,31 @@ class SetPkgrel(steps.ShellCommand):
     def doStepIf(step):
         pkgrel = step.getProperty('pkg_rel')
         return bool(pkgrel)
+
+
+class SetTagHash(steps.ShellCommand):
+    name = 'set tag hash'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['set tag hash']
+    descriptionDone = ['tag hash set']
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        tag_hash = props.getProperty('tag_hash')
+        return [
+            'sed',
+            '-r',
+            f's/#tag=[a-f0-9]{{40}}/#tag={tag_hash}/',
+            '-i',
+            'PKGBUILD'
+        ]
+
+    @staticmethod
+    def doStepIf(step):
+        tag_hash = step.getProperty('tag_hash')
+        return tag_hash and len(tag_hash) == 40
 
 
 class Srcinfo(steps.ShellCommand):
