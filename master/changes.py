@@ -10,9 +10,10 @@ from twisted.python import log
 
 class GitPollerWithTags(GitPoller):
 
-    def __init__(self, host: str, user: str, password: str, sender: str, recipients: list, **kwargs):
+    def __init__(self, host: str, port: int, user: str, password: str, sender: str, recipients: list, **kwargs):
         super().__init__(**kwargs)
         self.host = host
+        self.port = port
         self.user = user
         self.password = password
         self.sender = sender
@@ -65,9 +66,6 @@ class GitPollerWithTags(GitPoller):
                 self.changeCount, revList, self.repourl, branch))
 
         for rev in revList:
-            print("###############################")
-            print(rev)
-            print("###############################")
             dl = defer.DeferredList([
                 self._get_commit_timestamp(rev),
                 self._get_commit_author(rev),
@@ -90,11 +88,6 @@ class GitPollerWithTags(GitPoller):
 
             timestamp, author, committer, files, comments, tag = [r[1] for r in results]
             tag_hash = yield self._get_tag_hash(tag)
-
-            print("##########################################")
-            print(tag)
-            print(tag_hash)
-            print("##########################################")
 
             if rev == revList[-1]:
                 self._sendmail(f'[{self.category}] New release', f'{self.category} has got a new release: {tag}')
@@ -142,7 +135,7 @@ class GitPollerWithTags(GitPoller):
         msg = EmailMessage()
         msg.set_content(text)
         msg['Subject'] = subject
-        with SMTP(self.host) as s:
+        with SMTP(self.host, self.port) as s:
             s.starttls()
             s.login(self.user, self.password)
             s.send_message(msg, from_addr=self.sender, to_addrs=self.recipients)
