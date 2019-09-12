@@ -1,7 +1,7 @@
 from buildbot.plugins import *
 
-from steps import (ArchBuild, Cleanup, FindDependency, GpgSign, MountPkgbuildCom, MovePackage, RepoAdd, RepoSync, SetPkgrel, SetPkgver, SetTagHash, Srcinfo,
-                   UnmountPkgbuildCom, Updpkgsums)
+from steps import (ArchBuild, Cleanup, FindDependency, GpgSign, MountPkgbuildCom, MovePackage, RepoAdd, RepoSync, SetCommitRevision, SetPkgrel, SetPkgver,
+                   SetTagRevision, Srcinfo, UnmountPkgbuildCom, Updpkgsums)
 from util import ArchBuildUtil
 
 
@@ -72,9 +72,13 @@ class ArchBuildFactory(util.BuildFactory):
             Updpkgsums()
         ])
 
-        # update git tag
+        # update git tag revision
         if properties['git_tag']:
-            self.addStep(SetTagHash())
+            self.addStep(SetTagRevision())
+
+        # update git commit revision
+        if properties['git_revision']:
+            self.addStep(SetCommitRevision())
 
         # build
         self.addStep(ArchBuild())

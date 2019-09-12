@@ -8,7 +8,7 @@ from twisted.internet import defer
 from twisted.python import log
 
 
-class GitPollerWithTags(GitPoller):
+class CustomGitPoller(GitPoller):
 
     def __init__(self, host: str, port: int, user: str, password: str, sender: str, recipients: list, **kwargs):
         super().__init__(**kwargs)
@@ -87,7 +87,6 @@ class GitPollerWithTags(GitPoller):
                 failures[0].raiseException()
 
             timestamp, author, committer, files, comments, tag = [r[1] for r in results]
-            tag_hash = yield self._get_tag_hash(tag)
 
             if rev == revList[-1]:
                 self._sendmail(f'[{self.category}] New release', f'{self.category} has got a new release: {tag}')
@@ -101,11 +100,8 @@ class GitPollerWithTags(GitPoller):
                 project=self.project,
                 repository=bytes2unicode(self.repourl, encoding=self.encoding),
                 category=self.category,
-                src='git',
-                properties={
-                    'tag': bytes2unicode(tag, encoding=self.encoding),
-                    'tag_hash': bytes2unicode(tag_hash, encoding=self.encoding)
-                })
+                src='git'
+            )
 
     def _get_commit_tag(self, rev):
         args = ['--tags', rev, '--']
@@ -115,18 +111,6 @@ class GitPollerWithTags(GitPoller):
         def process(git_output):
             if not git_output:
                 raise EnvironmentError('could not get commit tag for rev')
-            return git_output
-
-        return d
-
-    def _get_tag_hash(self, tag):
-        args = [tag]
-        d = self._dovccmd('rev-parse', args, path=self.workdir)
-
-        @d.addCallback
-        def process(git_output):
-            if not git_output:
-                raise EnvironmentError('could not get hash for tag')
             return git_output
 
         return d
