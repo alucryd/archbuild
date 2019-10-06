@@ -29,8 +29,10 @@ class ArchBuildUtil:
 
         git_branch = ''
         git_tag = False
+        git_revision = False
         hg_branch = ''
         hg_tag = False
+        hg_revision = False
 
         pkgdir = f'{group}/{pkg_base}'
         if group in ('community', 'packages'):
@@ -57,10 +59,17 @@ class ArchBuildUtil:
                                 vcs_name = Path(urlparse(vcs_url).path).stem
                             if match_1.group(4):
                                 fragment = match_1.group(4).split('=')
-                                if vcs_type == 'git' and fragment[0] == 'tag':
-                                    git_tag = True
-                                elif vcs_type == 'hg' and fragment[0] == 'tag':
-                                    hg_tag = True
+                                if vcs_type == 'git':
+                                    if fragment[0] == 'tag':
+                                        git_tag = True
+                                    elif fragment[0] == 'commit':
+                                        git_revision = True
+                                elif vcs_type == 'hg':
+                                    if fragment[0] == 'tag':
+                                        hg_tag = True
+                                    elif fragment[0] == 'revision':
+                                        hg_revision = True
+
                     elif match_2 is not None:
                         # pick the first vcs as the main one
                         if not vcs_name:
@@ -71,10 +80,16 @@ class ArchBuildUtil:
                                 vcs_name = Path(urlparse(vcs_url).path).stem
                             if match_2.group(4):
                                 fragment = match_2.group(4).split('=')
-                                if vcs_type == 'git' and fragment[0] == 'tag':
-                                    git_tag = True
-                                elif vcs_type == 'hg' and fragment[0] == 'tag':
-                                    hg_tag = True
+                                if vcs_type == 'git':
+                                    if fragment[0] == 'tag':
+                                        git_tag = True
+                                    elif fragment[0] == 'commit':
+                                        git_revision = True
+                                elif vcs_type == 'hg':
+                                    if fragment[0] == 'tag':
+                                        hg_tag = True
+                                    elif fragment[0] == 'revision':
+                                        hg_revision = True
                     elif ArchBuildUtil.URL_PATTERN.match(source) is None:
                         src_names.append(source)
                 elif line.strip().startswith('arch'):
@@ -103,8 +118,10 @@ class ArchBuildUtil:
             'epoch': epoch,
             'git_branch': git_branch,
             'git_tag': git_tag,
+            'git_revision': git_revision,
             'hg_branch': hg_branch,
-            'hg_tag': hg_tag
+            'hg_tag': hg_tag,
+            'hg_revision': hg_revision
         }
 
     @staticmethod

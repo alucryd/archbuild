@@ -165,29 +165,44 @@ class SetPkgrel(steps.ShellCommand):
         return bool(pkgrel)
 
 
-class SetTagHash(steps.ShellCommand):
-    name = 'set tag hash'
+class SetTagRevision(steps.ShellCommand):
+    name = 'set tag revision'
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ['set tag hash']
-    descriptionDone = ['tag hash set']
+    description = ['set tag revision']
+    descriptionDone = ['tag revision set']
 
     @staticmethod
     @util.renderer
     def command(props):
-        tag_hash = props.getProperty('tag_hash')
+        revision = props.getProperty('revision')
         return [
             'sed',
             '-r',
-            f's/#tag=[a-f0-9]{{40}}/#tag={tag_hash}/',
+            f's/#tag=[a-f0-9]{{40}}/#tag={revision}/',
             '-i',
             'PKGBUILD'
         ]
 
+
+class SetCommitRevision(steps.ShellCommand):
+    name = 'set commit revision'
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ['set commit revision']
+    descriptionDone = ['commit revision set']
+
     @staticmethod
-    def doStepIf(step):
-        tag_hash = step.getProperty('tag_hash')
-        return tag_hash and len(tag_hash) == 40
+    @util.renderer
+    def command(props):
+        revision = props.getProperty('revision')
+        return [
+            'sed',
+            '-r',
+            f's/#commit=[a-f0-9]{{40}}/#commit={revision}/',
+            '-i',
+            'PKGBUILD'
+        ]
 
 
 class Srcinfo(steps.ShellCommand):

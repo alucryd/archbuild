@@ -7,7 +7,7 @@ license = "GPL-3.0"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-buildbot = "^2.4"
+buildbot = {version = "^2.4", extras = ["bundle", "tls"]}
 buildbot-worker = "^2.4"
 buildbot-www = "^2.4"
 psutil = "^5.6"
