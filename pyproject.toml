@@ -14,7 +14,7 @@ psutil = "^5.6"
 service_identity = "^18.1"
 
 [tool.poetry.dev-dependencies]
-autopep8 = "^1.4"
+black = { version = "=19.3b0", allows-prereleases = true }
 pylint = "^2.3"
 rope = "^0.14.0"
 

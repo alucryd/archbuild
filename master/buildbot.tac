@@ -23,7 +23,7 @@ if basedir == '.':
 # directory; do not edit it.
 application = service.Application('buildmaster')
 
-logfile = LogFile.fromFullPath(os.path.join(basedir, "twistd.log"), rotateLength=rotateLength,
+logfile = LogFile.fromFullPath(os.path.join(basedir, 'twistd.log'), rotateLength=rotateLength,
                                maxRotatedFiles=maxRotatedFiles)
 application.setComponent(ILogObserver, FileLogObserver(logfile).emit)
 
