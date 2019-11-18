@@ -249,7 +249,14 @@ class MountPkgbuildCom(steps.MasterShellCommand):
     flunkOnFailure = 1
     description = ["mount pkgbuild.com"]
     descriptionDone = ["pkgbuild.com mounted"]
-    command = ["sshfs", "-C", "pkgbuild.com:", Interpolate("%(prop:sshdir)s")]
+    command = [
+        "sshfs",
+        "-C",
+        "pkgbuild.com:",
+        Interpolate("%(prop:sshdir)s"),
+        "-o",
+        "idmap=user",
+    ]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
