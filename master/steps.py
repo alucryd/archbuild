@@ -21,7 +21,7 @@ class FindDependency(steps.SetPropertyFromCommand):
         repo_name = props.getProperty("repo_name")
         suffix = props.getProperty("suffix")
         depends_name = props.getProperty("depends_name")
-        return f"ls {repodir}/{repo_name}-{suffix}/x86_64/{depends_name}-*.pkg.tar.xz"
+        return f"ls {repodir}/{repo_name}-{suffix}/x86_64/{depends_name}-*.pkg.tar.zst"
 
     @staticmethod
     def restrict_glob(rc, stdout, stderr):
@@ -78,7 +78,7 @@ class MovePackage(steps.ShellCommand):
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz"
+        pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
         return ["mv", pkg, f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg}"]
 
 
@@ -99,7 +99,7 @@ class RepoAdd(steps.ShellCommand):
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz"
+        pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
         return [
             "repo-add",
             "-R",
@@ -227,7 +227,7 @@ class GpgSign(steps.MasterShellCommand):
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz"
+        pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
         return ["gpg", "--detach-sign", "--yes", f"{pkgdir}/{pkg}"]
 
 

@@ -143,7 +143,7 @@ class ArchBuildUtil:
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz"
+        return f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
 
     @staticmethod
     @util.renderer
@@ -153,7 +153,7 @@ class ArchBuildUtil:
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz.sig"
+        return f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
 
     @staticmethod
     @util.renderer
@@ -164,7 +164,7 @@ class ArchBuildUtil:
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz"
+        return f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
 
     @staticmethod
     @util.renderer
@@ -176,7 +176,7 @@ class ArchBuildUtil:
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
         return (
-            f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz.sig"
+            f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
         )
 
     @staticmethod
@@ -190,7 +190,7 @@ class ArchBuildUtil:
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        return f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.xz.sig"
+        return f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
 
     @staticmethod
     @util.renderer
