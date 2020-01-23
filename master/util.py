@@ -27,11 +27,11 @@ class ArchBuildUtil:
         epoch = ""
         pkg_arch = ""
 
-        git_branch = ""
         git_tag = False
+        git_branch = ""
         git_revision = False
-        hg_branch = ""
         hg_tag = False
+        hg_branch = ""
         hg_revision = False
 
         pkgdir = f"{group}/{pkg_base}"
@@ -64,11 +64,15 @@ class ArchBuildUtil:
                                 if vcs_type == "git":
                                     if fragment[0] == "tag":
                                         git_tag = True
+                                    elif fragment[0] == "branch":
+                                        git_branch = fragment[1]
                                     elif fragment[0] == "commit":
                                         git_revision = True
                                 elif vcs_type == "hg":
                                     if fragment[0] == "tag":
                                         hg_tag = True
+                                    elif fragment[0] == "branch":
+                                        hg_branch = fragment[1]
                                     elif fragment[0] == "revision":
                                         hg_revision = True
 
@@ -85,11 +89,15 @@ class ArchBuildUtil:
                                 if vcs_type == "git":
                                     if fragment[0] == "tag":
                                         git_tag = True
+                                    elif fragment[0] == "branch":
+                                        git_branch = fragment[1]
                                     elif fragment[0] == "commit":
                                         git_revision = True
                                 elif vcs_type == "hg":
                                     if fragment[0] == "tag":
                                         hg_tag = True
+                                    elif fragment[0] == "branch":
+                                        hg_branch = fragment[1]
                                     elif fragment[0] == "revision":
                                         hg_revision = True
                     elif ArchBuildUtil.URL_PATTERN.match(source) is None:
