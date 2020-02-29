@@ -165,6 +165,11 @@ class SetTagRevision(steps.ShellCommand):
             "PKGBUILD",
         ]
 
+    @staticmethod
+    def doStepIf(step):
+        revision = step.getProperty("revision")
+        return bool(revision)
+
 
 class SetCommitRevision(steps.ShellCommand):
     name = "set commit revision"
@@ -184,6 +189,11 @@ class SetCommitRevision(steps.ShellCommand):
             "-i",
             "PKGBUILD",
         ]
+
+    @staticmethod
+    def doStepIf(step):
+        revision = step.getProperty("revision")
+        return bool(revision)
 
 
 class Srcinfo(steps.ShellCommand):
