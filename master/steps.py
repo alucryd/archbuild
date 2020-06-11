@@ -160,7 +160,7 @@ class SetTagRevision(steps.ShellCommand):
         return [
             "sed",
             "-r",
-            f"s/#tag=[a-f0-9]{{40}}/#tag={revision}/",
+            f"s/_tag=[a-f0-9]{{40}}/_tag={revision}/",
             "-i",
             "PKGBUILD",
         ]
@@ -185,7 +185,7 @@ class SetCommitRevision(steps.ShellCommand):
         return [
             "sed",
             "-r",
-            f"s/#commit=[a-f0-9]{{40}}/#commit={revision}/",
+            f"s/_commit=[a-f0-9]{{40}}/_commit={revision}/",
             "-i",
             "PKGBUILD",
         ]

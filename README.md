@@ -10,8 +10,6 @@ This buildbot is intended for use with a build master where all your PKGBUILDs r
 - Split PKGBUILD support
 - Unattended GPG signing
 - Email reports
-
-## TODO
 - Override repo per package in the configuration to handle `multilib` packages in the `community` logical group
 - Add support for VCS url qualifiers (`#commit`, `#tag`, `#branch`, etc...)
 - Automatically update packages built from VCS tags or commits
