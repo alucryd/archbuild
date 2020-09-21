@@ -11,8 +11,8 @@ from psutil import process_iter
 class ArchBuildUtil:
     FILENAME = ".SRCINFO"
     URL_PATTERN = re.compile(r"[^:]*:{0,2}(ht|f)tps?://.+")
-    VCS_PATTERN_1 = re.compile(r"([^:]*):{0,2}((git|hg)://[^#]+)#?(.*)")
-    VCS_PATTERN_2 = re.compile(r"([^:]*):{0,2}(git|hg)\+([^#]+)#?(.*)")
+    VCS_PATTERN_1 = re.compile(r"([^:]*):{0,2}((git|hg)://[^#?]+)(\?signed)?#?(.*)")
+    VCS_PATTERN_2 = re.compile(r"([^:]*):{0,2}(git|hg)\+([^#?]+)(\?signed)?#?(.*)")
 
     @staticmethod
     def parse_srcinfo(basedir: str, group: str, pkg_base: str) -> dict:
@@ -59,8 +59,8 @@ class ArchBuildUtil:
                             vcs_name = match_1.group(1)
                             if not vcs_name:
                                 vcs_name = Path(urlparse(vcs_url).path).stem
-                            if match_1.group(4):
-                                fragment = match_1.group(4).split("=")
+                            if match_1.group(5):
+                                fragment = match_1.group(5).split("=")
                                 if vcs_type == "git":
                                     if fragment[0] == "tag":
                                         git_tag = True
@@ -84,8 +84,8 @@ class ArchBuildUtil:
                             vcs_name = match_2.group(1)
                             if not vcs_name:
                                 vcs_name = Path(urlparse(vcs_url).path).stem
-                            if match_2.group(4):
-                                fragment = match_2.group(4).split("=")
+                            if match_2.group(5):
+                                fragment = match_2.group(5).split("=")
                                 if vcs_type == "git":
                                     if fragment[0] == "tag":
                                         git_tag = True
