@@ -23,6 +23,8 @@ mail_recipients:
 # authentication
 admins:
   username: password
+oauth: True
+oauth_openid_configuration_uri: https://auth.domain.tld/.well-known/openid-configuration
 # repositories
 repos:
   - extra
