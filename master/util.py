@@ -199,17 +199,3 @@ class ArchBuildUtil:
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
         return f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
-
-    @staticmethod
-    @util.renderer
-    def ssh_agent(props):
-        uid = os.getuid()
-        ssh_agent_proc = [
-            p
-            for p in process_iter(attrs=["name", "uids"])
-            if p.info["name"] == "ssh-agent" and uid in p.info["uids"]
-        ][0]
-        return {
-            "SSH_AUTH_SOCK": f"/tmp/ssh-agent.sock.{uid}",
-            "SSH_AGENT_PID": str(ssh_agent_proc.pid),
-        }

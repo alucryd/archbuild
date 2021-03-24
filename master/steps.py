@@ -146,6 +146,23 @@ class SetPkgrel(steps.ShellCommand):
         return bool(pkgrel)
 
 
+class BumpPkgrel(steps.ShellCommand):
+    name = "bump pkgrel"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["bump pkgrel"]
+    descriptionDone = ["pkgrel bumped"]
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        return ["awk", "-i", "inplace", '{FS=OFS="=" }/pkgrel/{$2+=1}1', "PKGBUILD"]
+
+    @staticmethod
+    def doStepIf(step):
+        return step.getProperty("bump_pkg_rel", False)
+
+
 class SetTagRevision(steps.ShellCommand):
     name = "set tag revision"
     haltOnFailure = 1
