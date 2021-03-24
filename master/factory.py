@@ -2,6 +2,7 @@ from buildbot.plugins import steps, util
 
 from steps import (
     ArchBuild,
+    BumpPkgrel,
     Cleanup,
     CreateSshfsDirectory,
     FindDependency,
@@ -81,8 +82,7 @@ class ArchBuildFactory(util.BuildFactory):
                 )
             )
 
-        # update pkgver, pkgrel
-        self.addSteps([SetPkgver(), SetPkgrel(), Updpkgsums()])
+        self.addSteps([SetPkgver(), SetPkgrel(), BumpPkgrel(), Updpkgsums()])
 
         # update git tag revision
         if properties["git_tag"]:
@@ -152,8 +152,8 @@ class ArchBuildFactory(util.BuildFactory):
         # synchronize repository
         if sshdir:
             self.addStep(CreateSshfsDirectory())
-            self.addStep(MountPkgbuildCom(env=ArchBuildUtil.ssh_agent))
-            self.addStep(RepoSync(env=ArchBuildUtil.ssh_agent))
+            self.addStep(MountPkgbuildCom())
+            self.addStep(RepoSync())
             self.addStep(UnmountPkgbuildCom())
 
         # cleanup
