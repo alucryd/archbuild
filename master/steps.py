@@ -37,6 +37,7 @@ class ArchBuild(steps.ShellCommand):
     flunkOnFailure = 1
     description = ["building package"]
     descriptionDone = ["package built"]
+    timeout = None
 
     @staticmethod
     @util.renderer
