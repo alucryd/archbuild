@@ -4,10 +4,12 @@ from steps import (
     ArchBuild,
     BumpPkgrel,
     Cleanup,
-    CreateSshfsDirectory,
+    CreateSshfsRemoteDirectory,
+    CreateSshfsWorkerDirectory,
     FindDependency,
     GpgSign,
-    MountPkgbuildCom,
+    MountRemoteDirectory,
+    MountWorkerDirectory,
     MovePackage,
     RepoAdd,
     RepoSync,
@@ -16,7 +18,8 @@ from steps import (
     SetPkgver,
     SetTagRevision,
     Srcinfo,
-    UnmountPkgbuildCom,
+    UnmountRemoteDirectory,
+    UnmountWorkerDirectory,
     Updpkgsums,
 )
 from util import ArchBuildUtil
@@ -151,10 +154,13 @@ class ArchBuildFactory(util.BuildFactory):
 
         # synchronize repository
         if sshdir:
-            self.addStep(CreateSshfsDirectory())
-            self.addStep(MountPkgbuildCom())
+            self.addStep(CreateSshfsWorkerDirectory())
+            self.addStep(CreateSshfsRemoteDirectory())
+            self.addStep(MountWorkerDirectory())
+            self.addStep(MountRemoteDirectory())
             self.addStep(RepoSync())
-            self.addStep(UnmountPkgbuildCom())
+            self.addStep(UnmountWorkerDirectory())
+            self.addStep(UnmountRemoteDirectory())
 
         # cleanup
         self.addStep(Cleanup())

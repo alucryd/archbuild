@@ -259,47 +259,142 @@ class GpgSign(steps.MasterShellCommand):
         return ["gpg", "--detach-sign", "--yes", f"{pkgdir}/{pkg}"]
 
 
-class CreateSshfsDirectory(steps.MasterShellCommand):
-    name = "create sshfs directory"
+class CreateSshfsWorkerDirectory(steps.MasterShellCommand):
+    name = "create sshfs worker directory"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["create sshfs directory"]
-    descriptionDone = ["sshfs directory created"]
-    command = ["mkdir", "-p", Interpolate("%(prop:sshdir)s")]
+    description = ["create sshfs worker directory"]
+    descriptionDone = ["sshfs worker directory created"]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
 
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        return [
+            "mkdir",
+            "-p",
+            f"{sshdir}/{workerhost}",
+        ]
 
-class MountPkgbuildCom(steps.MasterShellCommand):
-    name = "mount pkgbuild.com"
+
+class CreateSshfsRemoteDirectory(steps.MasterShellCommand):
+    name = "create sshfs remote directory"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["mount pkgbuild.com"]
-    descriptionDone = ["pkgbuild.com mounted"]
-    command = [
-        "sshfs",
-        "-C",
-        "pkgbuild.com:",
-        Interpolate("%(prop:sshdir)s"),
-        "-o",
-        "idmap=user",
-    ]
+    description = ["create sshfs remote directory"]
+    descriptionDone = ["sshfs remote directory created"]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
 
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "mkdir",
+            "-p",
+            f"{sshdir}/{remotehost}",
+        ]
 
-class UnmountPkgbuildCom(steps.MasterShellCommand):
-    name = "unmount pkgbuild.com"
+
+class MountWorkerDirectory(steps.MasterShellCommand):
+    name = "mount worker directory"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["unmount pkgbuild.com"]
-    descriptionDone = ["pkgbuild.com unmounted"]
-    command = ["fusermount3", "-u", Interpolate("%(prop:sshdir)s")]
+    description = ["mount worker directory"]
+    descriptionDone = ["worker directory mounted"]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        return [
+            "sshfs",
+            "-C",
+            f"{workerhost}:",
+            f"{sshdir}/{workerhost}",
+            "-o",
+            "idmap=user",
+        ]
+
+
+class MountRemoteDirectory(steps.MasterShellCommand):
+    name = "mount remote directory"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["mount remote directory"]
+    descriptionDone = ["remote directory mounted"]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "sshfs",
+            "-C",
+            f"{remotehost}:",
+            f"{sshdir}/{remotehost}",
+            "-o",
+            "idmap=user",
+        ]
+
+
+class UnmountWorkerDirectory(steps.MasterShellCommand):
+    name = "unmount worker directory"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["unmount worker directory"]
+    descriptionDone = ["worker directory unmounted"]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        return [
+            "fusermount3",
+            "-u",
+            f"{sshdir}/{workerhost}",
+        ]
+
+
+class UnmountRemoteDirectory(steps.MasterShellCommand):
+    name = "unmount remote directory"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["unmount remote directory"]
+    descriptionDone = ["remote directory unmounted"]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "fusermount3",
+            "-u",
+            f"{sshdir}/{remotehost}",
+        ]
 
 
 class RepoSync(steps.MasterShellCommand):
@@ -308,16 +403,23 @@ class RepoSync(steps.MasterShellCommand):
     flunkOnFailure = 1
     description = ["synchronize repository"]
     descriptionDone = ["repository synchronized"]
-    command = [
-        "rsync",
-        "-avz",
-        "--delete",
-        Interpolate("%(prop:workerhost)s:~/public_html"),
-        Interpolate("%(prop:sshdir)s"),
-    ]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "rsync",
+            "-avz",
+            "--delete",
+            f"{sshdir}/{workerhost}/public_html",
+            f"{sshdir}/{remotehost}",
+        ]
 
 
 class Cleanup(steps.ShellCommand):
