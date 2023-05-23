@@ -1,15 +1,13 @@
-import os
 import re
 import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 
 from buildbot.plugins import util
-from psutil import process_iter
 
 
 class ArchBuildUtil:
-    FILENAME = ".SRCINFO"
+    SRCINFO = ".SRCINFO"
     URL_PATTERN = re.compile(r"[^:]*:{0,2}(ht|f)tps?://.+")
     VCS_PATTERN_1 = re.compile(r"([^:]*):{0,2}((git|hg)://[^#?]+)(\?signed)?#?(.*)")
     VCS_PATTERN_2 = re.compile(r"([^:]*):{0,2}(git|hg)\+([^#?]+)(\?signed)?#?(.*)")
@@ -34,15 +32,15 @@ class ArchBuildUtil:
         hg_branch = ""
         hg_revision = False
 
-        pkgdir = f"{group}/{pkg_base}"
-        if group in ("community", "packages"):
-            pkgdir += "/trunk"
-        path = Path(basedir) / pkgdir / ArchBuildUtil.FILENAME
+        path = Path(basedir) / group / pkg_base
+
+        if not path.is_dir():
+            subprocess.run(["pkgctl", "repo", "clone", pkg_base], cwd=path.parent, check=True)
+
+        path = path / ArchBuildUtil.SRCINFO
 
         if not path.is_file():
-            subprocess.run(
-                "makepkg --printsrcinfo > .SRCINFO", cwd=path.parent, shell=True
-            )
+            subprocess.run("makepkg --printsrcinfo > .SRCINFO", cwd=path.parent, shell=True, check=True)
 
         with open(path, "r") as f:
             line = f.readline()
@@ -183,33 +181,17 @@ class ArchBuildUtil:
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        return (
-            f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
-        )
+        return f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
 
     @staticmethod
     @util.renderer
     def sig_workerdest(props):
         repodir = props.getProperty("repodir")
-        repo_name = props.getProperty("repo_name")
+        repo = props.getProperty("repo")
         suffix = props.getProperty("suffix")
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
-        return f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
-
-    @staticmethod
-    @util.renderer
-    def ssh_agent(props):
-        uid = os.getuid()
-        ssh_agent_proc = [
-            p
-            for p in process_iter(attrs=["name", "uids"])
-            if p.info["name"] == "ssh-agent" and uid in p.info["uids"]
-        ][0]
-        return {
-            "SSH_AUTH_SOCK": f"/tmp/ssh-agent.sock.{uid}",
-            "SSH_AGENT_PID": str(ssh_agent_proc.pid),
-        }
+        return f"{repodir}/{repo}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"

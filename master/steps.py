@@ -1,5 +1,4 @@
 import os
-import re
 
 from buildbot.plugins import steps, util
 from buildbot.process.properties import Interpolate
@@ -18,13 +17,19 @@ class FindDependency(steps.SetPropertyFromCommand):
     @util.renderer
     def command(props):
         repodir = props.getProperty("repodir")
-        repo_name = props.getProperty("repo_name")
+        repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        if testing:
+            repo += "-testing"
+        elif staging:
+            repo += "-staging"
         suffix = props.getProperty("suffix")
         depends_name = props.getProperty("depends_name")
-        return f"ls {repodir}/{repo_name}-{suffix}/x86_64/{depends_name}-*.pkg.tar.zst"
+        return f"ls {repodir}/{repo}-{suffix}/x86_64/{depends_name}-*.pkg.tar.zst"
 
     @staticmethod
-    def restrict_glob(rc, stdout, stderr):
+    def restrict_glob(_rc, stdout, _stderr):
         pkgs = [l.strip() for l in stdout.split("\n") if l.strip()]
         pkg = sorted(pkgs, key=lambda pkg: pkg.count("-"))[0]
         pkg_name = "-".join(os.path.basename(pkg).split("-")[:-3])
@@ -37,19 +42,26 @@ class ArchBuild(steps.ShellCommand):
     flunkOnFailure = 1
     description = ["building package"]
     descriptionDone = ["package built"]
+    timeout = None
 
     @staticmethod
     @util.renderer
     def command(props):
-        command = ["sudo"]
-        repo_name = props.getProperty("repo_name")
-        pkg_arch = props.getProperty("pkg_arch")
-        repo_arch = "x86_64" if pkg_arch == "any" else pkg_arch
+        repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        pkgver = props.getProperty("pkg_ver")
+        pkgrel = props.getProperty("pkg_rel")
         depends = props.getProperty("depends")
-        if "multilib" in repo_name:
-            command.append(f"{repo_name}-build")
-        else:
-            command.append(f"{repo_name}-{repo_arch}-build")
+        command = ["pkgctl", "build", "--repo", repo]
+        if pkgver:
+            command.append(f"--pkgver={pkgver}")
+        if pkgrel:
+            command.append(f"--pkgrel={pkgrel}")
+        if testing:
+            command.append("-t")
+        elif staging:
+            command.append("-s")
         if depends is not None:
             command.append("--")
             for depends_name in depends:
@@ -72,14 +84,20 @@ class MovePackage(steps.ShellCommand):
     def command(props):
         repodir = props.getProperty("repodir")
         suffix = props.getProperty("suffix")
-        repo_name = props.getProperty("repo_name")
+        repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        if testing:
+            repo += "-testing"
+        elif staging:
+            repo += "-staging"
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
         pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
-        return ["mv", pkg, f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg}"]
+        return ["mv", pkg, f"{repodir}/{repo}-{suffix}/x86_64/{pkg}"]
 
 
 class RepoAdd(steps.ShellCommand):
@@ -92,8 +110,14 @@ class RepoAdd(steps.ShellCommand):
     @util.renderer
     def command(props):
         repodir = props.getProperty("repodir")
+        repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        if testing:
+            repo += "-testing"
+        elif staging:
+            repo += "-staging"
         suffix = props.getProperty("suffix")
-        repo_name = props.getProperty("repo_name")
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
         pkg_rel = props.getProperty("pkg_rel")
@@ -103,47 +127,26 @@ class RepoAdd(steps.ShellCommand):
         return [
             "repo-add",
             "-R",
-            f"{repodir}/{repo_name}-{suffix}/x86_64/{repo_name}-{suffix}.db.tar.gz",
-            f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg}",
+            f"{repodir}/{repo}-{suffix}/x86_64/{repo}-{suffix}.db.tar.gz",
+            f"{repodir}/{repo}-{suffix}/x86_64/{pkg}",
         ]
 
 
-class SetPkgver(steps.ShellCommand):
-    name = "set pkgver"
+class BumpPkgrel(steps.ShellCommand):
+    name = "bump pkgrel"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["set pkgver"]
-    descriptionDone = ["pkgver set"]
+    description = ["bump pkgrel"]
+    descriptionDone = ["pkgrel bumped"]
 
     @staticmethod
     @util.renderer
-    def command(props):
-        pkgver = props.getProperty("pkg_ver")
-        return ["sed", f"/pkgver=/c pkgver={pkgver}", "-i", "PKGBUILD"]
+    def command(_props):
+        return ["awk", "-i", "inplace", '{FS=OFS="=" }/pkgrel/{$2+=1}1', "PKGBUILD"]
 
     @staticmethod
     def doStepIf(step):
-        pkgver = step.getProperty("pkg_ver")
-        return bool(pkgver)
-
-
-class SetPkgrel(steps.ShellCommand):
-    name = "set pkgrel"
-    haltOnFailure = 1
-    flunkOnFailure = 1
-    description = ["set pkgrel"]
-    descriptionDone = ["pkgrel set"]
-
-    @staticmethod
-    @util.renderer
-    def command(props):
-        pkgrel = props.getProperty("pkg_rel")
-        return ["sed", f"/pkgrel=/c pkgrel={pkgrel}", "-i", "PKGBUILD"]
-
-    @staticmethod
-    def doStepIf(step):
-        pkgrel = step.getProperty("pkg_rel")
-        return bool(pkgrel)
+        return step.getProperty("bump_pkg_rel", False)
 
 
 class SetTagRevision(steps.ShellCommand):
@@ -238,50 +241,146 @@ class GpgSign(steps.MasterShellCommand):
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
         pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
-        return ["gpg", "--detach-sign", "--yes", f"{pkgdir}/{pkg}"]
+        gpg_fingerprint = props.getProperty("gpg_fingerprint")
+        return ["gpg", "--local-user", gpg_fingerprint, "--detach-sign", "--yes", f"{pkgdir}/{pkg}"]
 
 
-class CreateSshfsDirectory(steps.MasterShellCommand):
-    name = "create sshfs directory"
+class CreateSshfsWorkerDirectory(steps.MasterShellCommand):
+    name = "create sshfs worker directory"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["create sshfs directory"]
-    descriptionDone = ["sshfs directory created"]
-    command = ["mkdir", "-p", Interpolate("%(prop:sshdir)s")]
+    description = ["create sshfs worker directory"]
+    descriptionDone = ["sshfs worker directory created"]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
 
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        return [
+            "mkdir",
+            "-p",
+            f"{sshdir}/{workerhost}",
+        ]
 
-class MountPkgbuildCom(steps.MasterShellCommand):
-    name = "mount pkgbuild.com"
+
+class CreateSshfsRemoteDirectory(steps.MasterShellCommand):
+    name = "create sshfs remote directory"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["mount pkgbuild.com"]
-    descriptionDone = ["pkgbuild.com mounted"]
-    command = [
-        "sshfs",
-        "-C",
-        "pkgbuild.com:",
-        Interpolate("%(prop:sshdir)s"),
-        "-o",
-        "idmap=user",
-    ]
+    description = ["create sshfs remote directory"]
+    descriptionDone = ["sshfs remote directory created"]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
 
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "mkdir",
+            "-p",
+            f"{sshdir}/{remotehost}",
+        ]
 
-class UnmountPkgbuildCom(steps.MasterShellCommand):
-    name = "unmount pkgbuild.com"
+
+class MountWorkerDirectory(steps.MasterShellCommand):
+    name = "mount worker directory"
     haltOnFailure = 1
     flunkOnFailure = 1
-    description = ["unmount pkgbuild.com"]
-    descriptionDone = ["pkgbuild.com unmounted"]
-    command = ["fusermount3", "-u", Interpolate("%(prop:sshdir)s")]
+    description = ["mount worker directory"]
+    descriptionDone = ["worker directory mounted"]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        return [
+            "sshfs",
+            "-C",
+            f"{workerhost}:",
+            f"{sshdir}/{workerhost}",
+            "-o",
+            "idmap=user",
+        ]
+
+
+class MountRemoteDirectory(steps.MasterShellCommand):
+    name = "mount remote directory"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["mount remote directory"]
+    descriptionDone = ["remote directory mounted"]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "sshfs",
+            "-C",
+            f"{remotehost}:",
+            f"{sshdir}/{remotehost}",
+            "-o",
+            "idmap=user",
+        ]
+
+
+class UnmountWorkerDirectory(steps.MasterShellCommand):
+    name = "unmount worker directory"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["unmount worker directory"]
+    descriptionDone = ["worker directory unmounted"]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        return [
+            "fusermount3",
+            "-u",
+            f"{sshdir}/{workerhost}",
+        ]
+
+
+class UnmountRemoteDirectory(steps.MasterShellCommand):
+    name = "unmount remote directory"
+    haltOnFailure = 1
+    flunkOnFailure = 1
+    description = ["unmount remote directory"]
+    descriptionDone = ["remote directory unmounted"]
+
+    def __init__(self, **kwargs):
+        super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "fusermount3",
+            "-u",
+            f"{sshdir}/{remotehost}",
+        ]
 
 
 class RepoSync(steps.MasterShellCommand):
@@ -290,16 +389,23 @@ class RepoSync(steps.MasterShellCommand):
     flunkOnFailure = 1
     description = ["synchronize repository"]
     descriptionDone = ["repository synchronized"]
-    command = [
-        "rsync",
-        "-avz",
-        "--delete",
-        Interpolate("%(prop:workerhost)s:~/public_html"),
-        Interpolate("%(prop:sshdir)s"),
-    ]
 
     def __init__(self, **kwargs):
         super().__init__(command=self.command, **kwargs)
+
+    @staticmethod
+    @util.renderer
+    def command(props):
+        sshdir = props.getProperty("sshdir")
+        workerhost = props.getProperty("workerhost")
+        remotehost = props.getProperty("remotehost")
+        return [
+            "rsync",
+            "-avz",
+            "--delete",
+            f"{sshdir}/{workerhost}/public_html",
+            f"{sshdir}/{remotehost}",
+        ]
 
 
 class Cleanup(steps.ShellCommand):

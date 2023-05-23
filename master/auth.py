@@ -29,4 +29,8 @@ class OpenIDAuth(OAuth2Auth):
 
         json = r.json()
 
-        return {"full_name": json["name"], "email": json["email"]}
+        return {
+            "email": json["email"],
+            "full_name": json["name"],
+            "username": json["username"],
+        }

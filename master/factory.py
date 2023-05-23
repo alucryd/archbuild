@@ -2,20 +2,22 @@ from buildbot.plugins import steps, util
 
 from steps import (
     ArchBuild,
+    BumpPkgrel,
     Cleanup,
-    CreateSshfsDirectory,
+    CreateSshfsRemoteDirectory,
+    CreateSshfsWorkerDirectory,
     FindDependency,
     GpgSign,
-    MountPkgbuildCom,
+    MountRemoteDirectory,
+    MountWorkerDirectory,
     MovePackage,
     RepoAdd,
     RepoSync,
     SetCommitRevision,
-    SetPkgrel,
-    SetPkgver,
     SetTagRevision,
     Srcinfo,
-    UnmountPkgbuildCom,
+    UnmountRemoteDirectory,
+    UnmountWorkerDirectory,
     Updpkgsums,
 )
 from util import ArchBuildUtil
@@ -29,15 +31,8 @@ class ArchBuildFactory(util.BuildFactory):
         sshdir = properties["sshdir"]
         workdir = f"{pkgbuilddir}/{group}/{pkg_base}"
 
-        if group in ("community", "packages"):
-            workdir += "/trunk"
-
         # set initial properties
-        self.addStep(
-            steps.SetProperties(
-                name="set properties from srcinfo", properties=properties
-            )
-        )
+        self.addStep(steps.SetProperties(name="set properties from srcinfo", properties=properties))
 
         # find dependencies
         depends = properties["depends"]
@@ -66,7 +61,7 @@ class ArchBuildFactory(util.BuildFactory):
         for src_name in properties["src_names"]:
             self.addStep(
                 steps.FileDownload(
-                    name=f"download {src_name}",
+                    name=f"download {src_name}"[:50],
                     mastersrc=f"{workdir}/{src_name}",
                     workerdest=src_name,
                 )
@@ -75,14 +70,13 @@ class ArchBuildFactory(util.BuildFactory):
         if install:
             self.addStep(
                 steps.FileDownload(
-                    name=f"download {install}",
+                    name=f"download {install}"[:50],
                     mastersrc=f"{workdir}/{install}",
                     workerdest=install,
                 )
             )
 
-        # update pkgver, pkgrel
-        self.addSteps([SetPkgver(), SetPkgrel(), Updpkgsums()])
+        self.addSteps([BumpPkgrel(), Updpkgsums()])
 
         # update git tag revision
         if properties["git_tag"]:
@@ -151,10 +145,13 @@ class ArchBuildFactory(util.BuildFactory):
 
         # synchronize repository
         if sshdir:
-            self.addStep(CreateSshfsDirectory())
-            self.addStep(MountPkgbuildCom(env=ArchBuildUtil.ssh_agent))
-            self.addStep(RepoSync(env=ArchBuildUtil.ssh_agent))
-            self.addStep(UnmountPkgbuildCom())
+            self.addStep(CreateSshfsWorkerDirectory())
+            self.addStep(CreateSshfsRemoteDirectory())
+            self.addStep(MountWorkerDirectory())
+            self.addStep(MountRemoteDirectory())
+            self.addStep(RepoSync())
+            self.addStep(UnmountWorkerDirectory())
+            self.addStep(UnmountRemoteDirectory())
 
         # cleanup
         self.addStep(Cleanup())

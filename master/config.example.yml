@@ -18,32 +18,22 @@ mail_user: buildbot
 mail_password: password
 mail_sender: buildbot@localhost
 mail_recipients:
- - user1@localhost
- - user2@localhost
+  - user1@localhost
+  - user2@localhost
 # authentication
 admins:
   username: password
 oauth: True
 oauth_openid_configuration_uri: https://auth.domain.tld/.well-known/openid-configuration
-# repositories
-repos:
-  - extra
-  - testing
-  - staging
-  - multilib
-  - multilib-testing
-  - multilib-staging
 # package groups
 groups:
-  -
-    name: community
+  - name: core
     repo: extra
     pkgs:
-    - name: pkg1
-    - name: pkg2
-      repo: multilib
-  -
-    name: packages
+      - name: pkg1
+      - name: pkg2
+        testing: True
+  - name: extra
     repo: extra
     pkgs:
       - name: pkg3
