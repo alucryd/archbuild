@@ -18,6 +18,12 @@ class FindDependency(steps.SetPropertyFromCommand):
     def command(props):
         repodir = props.getProperty("repodir")
         repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        if testing:
+            repo += "-testing"
+        elif staging:
+            repo += "-staging"
         suffix = props.getProperty("suffix")
         depends_name = props.getProperty("depends_name")
         return f"ls {repodir}/{repo}-{suffix}/x86_64/{depends_name}-*.pkg.tar.zst"
@@ -42,10 +48,10 @@ class ArchBuild(steps.ShellCommand):
     @util.renderer
     def command(props):
         repo = props.getProperty("repo")
-        pkgver = props.getProperty("pkg_ver")
-        pkgrel = props.getProperty("pkg_rel")
         testing = props.getProperty("testing")
         staging = props.getProperty("staging")
+        pkgver = props.getProperty("pkg_ver")
+        pkgrel = props.getProperty("pkg_rel")
         depends = props.getProperty("depends")
         command = ["sudo", "pkgctl", "build", "--repo", repo]
         if pkgver:
@@ -79,6 +85,12 @@ class MovePackage(steps.ShellCommand):
         repodir = props.getProperty("repodir")
         suffix = props.getProperty("suffix")
         repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        if testing:
+            repo += "-testing"
+        elif staging:
+            repo += "-staging"
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
         pkg_rel = props.getProperty("pkg_rel")
@@ -99,6 +111,12 @@ class RepoAdd(steps.ShellCommand):
     def command(props):
         repodir = props.getProperty("repodir")
         repo = props.getProperty("repo")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
+        if testing:
+            repo += "-testing"
+        elif staging:
+            repo += "-staging"
         suffix = props.getProperty("suffix")
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
