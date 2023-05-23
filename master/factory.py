@@ -14,8 +14,6 @@ from steps import (
     RepoAdd,
     RepoSync,
     SetCommitRevision,
-    SetPkgrel,
-    SetPkgver,
     SetTagRevision,
     Srcinfo,
     UnmountRemoteDirectory,
@@ -33,15 +31,8 @@ class ArchBuildFactory(util.BuildFactory):
         sshdir = properties["sshdir"]
         workdir = f"{pkgbuilddir}/{group}/{pkg_base}"
 
-        if group in ("community", "packages"):
-            workdir += "/trunk"
-
         # set initial properties
-        self.addStep(
-            steps.SetProperties(
-                name="set properties from srcinfo", properties=properties
-            )
-        )
+        self.addStep(steps.SetProperties(name="set properties from srcinfo", properties=properties))
 
         # find dependencies
         depends = properties["depends"]
@@ -85,7 +76,7 @@ class ArchBuildFactory(util.BuildFactory):
                 )
             )
 
-        self.addSteps([SetPkgver(), SetPkgrel(), BumpPkgrel(), Updpkgsums()])
+        self.addSteps([BumpPkgrel(), Updpkgsums()])
 
         # update git tag revision
         if properties["git_tag"]:

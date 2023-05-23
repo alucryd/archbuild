@@ -1,5 +1,4 @@
 import os
-import re
 
 from buildbot.plugins import steps, util
 from buildbot.process.properties import Interpolate
@@ -18,13 +17,13 @@ class FindDependency(steps.SetPropertyFromCommand):
     @util.renderer
     def command(props):
         repodir = props.getProperty("repodir")
-        repo_name = props.getProperty("repo_name")
+        repo = props.getProperty("repo")
         suffix = props.getProperty("suffix")
         depends_name = props.getProperty("depends_name")
-        return f"ls {repodir}/{repo_name}-{suffix}/x86_64/{depends_name}-*.pkg.tar.zst"
+        return f"ls {repodir}/{repo}-{suffix}/x86_64/{depends_name}-*.pkg.tar.zst"
 
     @staticmethod
-    def restrict_glob(rc, stdout, stderr):
+    def restrict_glob(_rc, stdout, _stderr):
         pkgs = [l.strip() for l in stdout.split("\n") if l.strip()]
         pkg = sorted(pkgs, key=lambda pkg: pkg.count("-"))[0]
         pkg_name = "-".join(os.path.basename(pkg).split("-")[:-3])
@@ -42,15 +41,21 @@ class ArchBuild(steps.ShellCommand):
     @staticmethod
     @util.renderer
     def command(props):
-        command = ["sudo"]
-        repo_name = props.getProperty("repo_name")
-        pkg_arch = props.getProperty("pkg_arch")
-        repo_arch = "x86_64" if pkg_arch == "any" else pkg_arch
+        repo = props.getProperty("repo")
+        pkgver = props.getProperty("pkg_ver")
+        pkgrel = props.getProperty("pkg_rel")
+        testing = props.getProperty("testing")
+        staging = props.getProperty("staging")
         depends = props.getProperty("depends")
-        if "multilib" in repo_name:
-            command.append(f"{repo_name}-build")
-        else:
-            command.append(f"{repo_name}-{repo_arch}-build")
+        command = ["sudo", "pkgctl", "build", "--repo", repo]
+        if pkgver:
+            command.append(f"--pkgver={pkgver}")
+        if pkgrel:
+            command.append(f"--pkgrel={pkgrel}")
+        if testing:
+            command.append("-t")
+        elif staging:
+            command.append("-s")
         if depends is not None:
             command.append("--")
             for depends_name in depends:
@@ -73,14 +78,14 @@ class MovePackage(steps.ShellCommand):
     def command(props):
         repodir = props.getProperty("repodir")
         suffix = props.getProperty("suffix")
-        repo_name = props.getProperty("repo_name")
+        repo = props.getProperty("repo")
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
         pkg_rel = props.getProperty("pkg_rel")
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
         pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
-        return ["mv", pkg, f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg}"]
+        return ["mv", pkg, f"{repodir}/{repo}-{suffix}/x86_64/{pkg}"]
 
 
 class RepoAdd(steps.ShellCommand):
@@ -93,8 +98,8 @@ class RepoAdd(steps.ShellCommand):
     @util.renderer
     def command(props):
         repodir = props.getProperty("repodir")
+        repo = props.getProperty("repo")
         suffix = props.getProperty("suffix")
-        repo_name = props.getProperty("repo_name")
         pkg_name = props.getProperty("pkg_name")
         pkg_ver = props.getProperty("pkg_ver")
         pkg_rel = props.getProperty("pkg_rel")
@@ -104,47 +109,9 @@ class RepoAdd(steps.ShellCommand):
         return [
             "repo-add",
             "-R",
-            f"{repodir}/{repo_name}-{suffix}/x86_64/{repo_name}-{suffix}.db.tar.gz",
-            f"{repodir}/{repo_name}-{suffix}/x86_64/{pkg}",
+            f"{repodir}/{repo}-{suffix}/x86_64/{repo}-{suffix}.db.tar.gz",
+            f"{repodir}/{repo}-{suffix}/x86_64/{pkg}",
         ]
-
-
-class SetPkgver(steps.ShellCommand):
-    name = "set pkgver"
-    haltOnFailure = 1
-    flunkOnFailure = 1
-    description = ["set pkgver"]
-    descriptionDone = ["pkgver set"]
-
-    @staticmethod
-    @util.renderer
-    def command(props):
-        pkgver = props.getProperty("pkg_ver")
-        return ["sed", f"/pkgver=/c pkgver={pkgver}", "-i", "PKGBUILD"]
-
-    @staticmethod
-    def doStepIf(step):
-        pkgver = step.getProperty("pkg_ver")
-        return bool(pkgver)
-
-
-class SetPkgrel(steps.ShellCommand):
-    name = "set pkgrel"
-    haltOnFailure = 1
-    flunkOnFailure = 1
-    description = ["set pkgrel"]
-    descriptionDone = ["pkgrel set"]
-
-    @staticmethod
-    @util.renderer
-    def command(props):
-        pkgrel = props.getProperty("pkg_rel")
-        return ["sed", f"/pkgrel=/c pkgrel={pkgrel}", "-i", "PKGBUILD"]
-
-    @staticmethod
-    def doStepIf(step):
-        pkgrel = step.getProperty("pkg_rel")
-        return bool(pkgrel)
 
 
 class BumpPkgrel(steps.ShellCommand):
@@ -156,7 +123,7 @@ class BumpPkgrel(steps.ShellCommand):
 
     @staticmethod
     @util.renderer
-    def command(props):
+    def command(_props):
         return ["awk", "-i", "inplace", '{FS=OFS="=" }/pkgrel/{$2+=1}1', "PKGBUILD"]
 
     @staticmethod
