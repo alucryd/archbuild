@@ -223,7 +223,8 @@ class GpgSign(steps.MasterShellCommand):
         epoch = props.getProperty("epoch")
         pkg_arch = props.getProperty("pkg_arch")
         pkg = f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
-        return ["gpg", "--detach-sign", "--yes", f"{pkgdir}/{pkg}"]
+        gpg_fingerprint = props.getProperty("gpg_fingerprint")
+        return ["gpg", "--local-user", gpg_fingerprint, "--detach-sign", "--yes", f"{pkgdir}/{pkg}"]
 
 
 class CreateSshfsWorkerDirectory(steps.MasterShellCommand):
