@@ -53,7 +53,7 @@ class ArchBuild(steps.ShellCommand):
         pkgver = props.getProperty("pkg_ver")
         pkgrel = props.getProperty("pkg_rel")
         depends = props.getProperty("depends")
-        command = ["sudo", "pkgctl", "build", "--repo", repo]
+        command = ["pkgctl", "build", "--repo", repo]
         if pkgver:
             command.append(f"--pkgver={pkgver}")
         if pkgrel:
