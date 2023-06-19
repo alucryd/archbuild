@@ -24,7 +24,7 @@ from util import ArchBuildUtil
 
 
 class ArchBuildFactory(util.BuildFactory):
-    def __init__(self, pkgbuilddir: str, group: str, pkg_base: str, properties: dict):
+    def __init__(self, pkgbuilddir: str, group: str, pkg_base: str, skip_repo: bool, properties: dict):
         super().__init__()
 
         gpg_sign = properties["gpg_sign"]
@@ -141,7 +141,8 @@ class ArchBuildFactory(util.BuildFactory):
                 )
 
             # update repository
-            self.addStep(RepoAdd(name=f"add {pkg_name}"))
+            if not skip_repo:
+                self.addStep(RepoAdd(name=f"add {pkg_name}"))
 
         # synchronize repository
         if sshdir:
