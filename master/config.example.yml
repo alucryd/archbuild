@@ -37,6 +37,7 @@ groups:
     repo: extra
     pkgs:
       - name: pkg3
+        skip_repo: True
       - name: pkg4
         depends:
           - pkg1
