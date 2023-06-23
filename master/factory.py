@@ -125,24 +125,27 @@ class ArchBuildFactory(util.BuildFactory):
                         workersrc=ArchBuildUtil.pkg,
                         masterdest=ArchBuildUtil.pkg_masterdest,
                     ),
-                    MovePackage(name=f"move {pkg_name}"),
                 ]
             )
             if gpg_sign:
-                self.addSteps(
-                    [
-                        GpgSign(name=f"sign {pkg_name}"),
+                self.addStep(GpgSign(name=f"sign {pkg_name}"))
+
+            # update repository
+            if not skip_repo:
+                if gpg_sign:
+                    self.addStep(
                         steps.FileDownload(
                             name=f"download {pkg_name} sig",
                             mastersrc=ArchBuildUtil.sig_mastersrc,
                             workerdest=ArchBuildUtil.sig_workerdest,
-                        ),
+                        )
+                    )
+                self.addSteps(
+                    [
+                        MovePackage(name=f"move {pkg_name}"),
+                        RepoAdd(name=f"add {pkg_name}"),
                     ]
                 )
-
-            # update repository
-            if not skip_repo:
-                self.addStep(RepoAdd(name=f"add {pkg_name}"))
 
         # synchronize repository
         if sshdir:
