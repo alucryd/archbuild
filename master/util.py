@@ -13,9 +13,7 @@ class ArchBuildUtil:
     VCS_PATTERN_2 = re.compile(r"([^:]*):{0,2}(git|hg)\+([^#?]+)(\?signed)?#?(.*)")
 
     @staticmethod
-    def parse_srcinfo(basedir: str, group: str, pkg_base: str) -> dict:
-        src_names = []
-        install = ""
+    def parse_srcinfo(basedir: str, repo: str, pkg_base: str) -> dict:
         vcs_type = ""
         vcs_url = ""
         vcs_name = ""
@@ -32,7 +30,7 @@ class ArchBuildUtil:
         hg_branch = ""
         hg_revision = False
 
-        path = Path(basedir) / group / pkg_base
+        path = Path(basedir) / repo / pkg_base
 
         if not path.is_dir():
             subprocess.run(["pkgctl", "repo", "clone", pkg_base], cwd=path.parent, check=True)
@@ -98,8 +96,6 @@ class ArchBuildUtil:
                                         hg_branch = fragment[1]
                                     elif fragment[0] == "revision":
                                         hg_revision = True
-                    elif ArchBuildUtil.URL_PATTERN.match(source) is None:
-                        src_names.append(source)
                 elif line.strip().startswith("arch"):
                     pkg_arch = line.split("=")[1].strip()
                 elif line.strip().startswith("pkgname"):
@@ -110,12 +106,8 @@ class ArchBuildUtil:
                     pkg_rel = line.split("=")[1].strip()
                 elif line.strip().startswith("epoch"):
                     epoch = line.split("=")[1].strip() + ":"
-                elif line.strip().startswith("install"):
-                    install = line.split("=")[1].strip()
                 line = f.readline()
         return {
-            "src_names": src_names,
-            "install": install,
             "vcs_type": vcs_type,
             "vcs_url": vcs_url,
             "vcs_name": vcs_name,
@@ -136,62 +128,7 @@ class ArchBuildUtil:
     @util.renderer
     def srcinfo(props):
         pkgbuilddir = props.getProperty("pkgbuilddir")
-        group = props.getProperty("group")
-        pkg_base = props.getProperty("pkg_base")
-        properties = ArchBuildUtil.parse_srcinfo(pkgbuilddir, group, pkg_base)
-        return properties
-
-    @staticmethod
-    @util.renderer
-    def pkg(props):
-        pkg_name = props.getProperty("pkg_name")
-        pkg_ver = props.getProperty("pkg_ver")
-        pkg_rel = props.getProperty("pkg_rel")
-        epoch = props.getProperty("epoch")
-        pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
-
-    @staticmethod
-    @util.renderer
-    def sig(props):
-        pkg_name = props.getProperty("pkg_name")
-        pkg_ver = props.getProperty("pkg_ver")
-        pkg_rel = props.getProperty("pkg_rel")
-        epoch = props.getProperty("epoch")
-        pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
-
-    @staticmethod
-    @util.renderer
-    def pkg_masterdest(props):
-        pkgdir = props.getProperty("pkgdir")
-        pkg_name = props.getProperty("pkg_name")
-        pkg_ver = props.getProperty("pkg_ver")
-        pkg_rel = props.getProperty("pkg_rel")
-        epoch = props.getProperty("epoch")
-        pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst"
-
-    @staticmethod
-    @util.renderer
-    def sig_mastersrc(props):
-        pkgdir = props.getProperty("pkgdir")
-        pkg_name = props.getProperty("pkg_name")
-        pkg_ver = props.getProperty("pkg_ver")
-        pkg_rel = props.getProperty("pkg_rel")
-        epoch = props.getProperty("epoch")
-        pkg_arch = props.getProperty("pkg_arch")
-        return f"{pkgdir}/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
-
-    @staticmethod
-    @util.renderer
-    def sig_workerdest(props):
-        repodir = props.getProperty("repodir")
         repo = props.getProperty("repo")
-        suffix = props.getProperty("suffix")
-        pkg_name = props.getProperty("pkg_name")
-        pkg_ver = props.getProperty("pkg_ver")
-        pkg_rel = props.getProperty("pkg_rel")
-        epoch = props.getProperty("epoch")
-        pkg_arch = props.getProperty("pkg_arch")
-        return f"{repodir}/{repo}-{suffix}/x86_64/{pkg_name}-{epoch}{pkg_ver}-{pkg_rel}-{pkg_arch}.pkg.tar.zst.sig"
+        pkg_base = props.getProperty("pkg_base")
+        properties = ArchBuildUtil.parse_srcinfo(pkgbuilddir, repo, pkg_base)
+        return properties

@@ -4,13 +4,6 @@ url: http://localhost:8010
 pkgbuilddir: /path/to/pkgbuilds
 srcdir: /path/to/srcs
 pkgdir: /path/to/pkgs
-sshdir: /path/to/ssh/mountpoint # optional
-# worker directories
-repodir: /path/to/public/html
-# repository suffix
-suffix: archbuild
-# sign packages
-gpg_sign: False
 # email reports
 mail_reports: False
 mail_host: localhost
@@ -25,19 +18,16 @@ admins:
   username: password
 oauth: True
 oauth_openid_configuration_uri: https://auth.domain.tld/.well-known/openid-configuration
-# package groups
-groups:
+# package repos
+repos:
   - name: core
-    repo: extra
     pkgs:
       - name: pkg1
       - name: pkg2
         testing: True
   - name: extra
-    repo: extra
     pkgs:
       - name: pkg3
-        skip_repo: True
       - name: pkg4
         depends:
           - pkg1
